@@ -1,20 +1,22 @@
 'use client';
 
-import type { UseFormRegister, UseFormWatch } from 'react-hook-form';
+import type { Control, UseFormRegister, UseFormSetValue } from 'react-hook-form';
 import type { CalculatorInput } from '@/validations/calculator';
+import { useWatch } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Slider } from '@/components/ui/Slider';
 
 export type PumpSpecsSectionProps = {
   register: UseFormRegister<CalculatorInput>;
-  watch: UseFormWatch<CalculatorInput>;
+  control: Control<CalculatorInput>;
+  setValue: UseFormSetValue<CalculatorInput>;
   errors: any;
 };
 
-export function PumpSpecsSection({ register, watch, errors }: PumpSpecsSectionProps) {
-  const pumpType = watch('pumpSpecs.type');
-  const pumpAge = watch('pumpSpecs.ageYears') || 0;
+export function PumpSpecsSection({ register, control, setValue, errors }: PumpSpecsSectionProps) {
+  const pumpType = useWatch({ control, name: 'pumpSpecs.type' });
+  const pumpAge = useWatch({ control, name: 'pumpSpecs.ageYears', defaultValue: 3 }) ?? 3;
 
   return (
     <div className="space-y-4">
@@ -52,8 +54,9 @@ export function PumpSpecsSection({ register, watch, errors }: PumpSpecsSectionPr
         min={0}
         max={15}
         step={1}
-        {...register('pumpSpecs.ageYears', { valueAsNumber: true })}
+        name="pumpSpecs.ageYears"
         value={pumpAge}
+        onChange={e => setValue('pumpSpecs.ageYears', Number(e.target.value), { shouldValidate: true })}
       />
 
       {pumpType === 'variable-speed' && (

@@ -25,6 +25,7 @@ export function CalculatorForm() {
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors },
   } = useForm<CalculatorInput>({
     resolver: zodResolver(calculatorInputSchema),
@@ -114,7 +115,7 @@ export function CalculatorForm() {
             <PoolSpecsSection register={register} errors={errors} />
             <div className="border-t border-gray-200" />
 
-            <PumpSpecsSection register={register} watch={watch} errors={errors} />
+            <PumpSpecsSection register={register} control={control} setValue={setValue} errors={errors} />
             <div className="border-t border-gray-200" />
 
             <LocationSection register={register} setValue={setValue} errors={errors} />
