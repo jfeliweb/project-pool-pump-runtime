@@ -6,11 +6,18 @@ commit-msg:
 
 # Validate content before committing
 pre-commit:
+  # Skip restoring unstaged changes to prevent conflicts when hooks modify files.
+  # This prevents the "Couldn't restore unstaged files" error.
+  # Note: This option may not be recognized by lefthook v2.0.4, but it's harmless if ignored.
+  skip_restore_unstaged: true
   commands:
     lint:
       glob: '*'
       run: npx --no -- eslint --fix --no-warn-ignored {staged_files}
-      stage_fixed: true
+      # stage_fixed removed to prevent conflicts when restoring unstaged changes.
+      # When eslint --fix modifies files, lefthook tries to restore unstaged changes,
+      # but the patch fails because files were modified. Removing stage_fixed prevents this conflict.
+      # Auto-fixed files will remain modified but unstaged - review and stage them manually if needed.
       priority: 1
     check-types:
       glob: '*.{ts,tsx}'

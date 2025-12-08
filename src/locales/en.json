@@ -1,19 +1,18 @@
 {
   "RootLayout": {
     "home_link": "Home",
-    "about_link": "About",
-    "counter_link": "Counter",
-    "portfolio_link": "Portfolio",
+    "calculator_link": "Calculator",
+    "help_link": "Help",
     "sign_in_link": "Sign in",
     "sign_up_link": "Sign up"
   },
   "BaseTemplate": {
-    "description": "Starter code for your Nextjs Boilerplate with Tailwind CSS",
+    "description": "Optimize your pool pump runtime and save on electricity costs",
     "made_with": "Made with <author></author>."
   },
   "Index": {
-    "meta_title": "Next.js Boilerplate Presentation",
-    "meta_description": "Next js Boilerplate is the perfect starter code for your project. Build your React application with the Next.js framework.",
+    "meta_title": "PoolCalc - Pool Pump Runtime Calculator",
+    "meta_description": "Calculate optimal pool pump runtime and save money on electricity. Free pool pump calculator for US pool owners.",
     "sponsors_title": "Sponsors"
   },
   "Counter": {
@@ -61,8 +60,15 @@
   },
   "Dashboard": {
     "meta_title": "Dashboard",
+    "page_title": "Dashboard",
+    "page_subtitle": "Manage your pool configurations and track savings",
     "hello_message": "Hello {email}!",
-    "alternative_message": "Need advanced features? Multi-tenancy & Teams, Roles & Permissions, Shadcn UI, End-to-End Typesafety with oRPC, Stripe Payment, Light / Dark mode. Try <url></url>."
+    "alternative_message": "Need advanced features? Multi-tenancy & Teams, Roles & Permissions, Shadcn UI, End-to-End Typesafety with oRPC, Stripe Payment, Light / Dark mode. Try <url></url>.",
+    "total_savings": "Total Monthly Savings",
+    "active_pools": "Active Pools",
+    "energy_saved": "Annual Energy Saved",
+    "efficiency_score": "Avg Efficiency Score",
+    "add_pool": "Add New Pool"
   },
   "UserProfile": {
     "meta_title": "User Profile"
@@ -71,5 +77,40 @@
     "dashboard_link": "Dashboard",
     "user_profile_link": "Manage your account",
     "sign_out": "Sign out"
+  },
+  "Calculator": {
+    "meta_title": "Pool Pump Runtime Calculator | PoolCalc",
+    "meta_description": "Calculate optimal pool pump runtime and save money on electricity",
+    "page_title": "Pool Pump Runtime Calculator",
+    "page_subtitle": "Get your personalized optimization schedule in under 2 minutes",
+    "calculate_button": "Calculate Optimal Runtime",
+    "calculating": "Calculating...",
+    "pool_specs_title": "Pool Specifications",
+    "pump_info_title": "Pump Information",
+    "location_energy_title": "Location & Energy",
+    "usage_environment_title": "Usage & Environment"
+  },
+  "Landing": {
+    "meta_title": "PoolCalc - Stop Wasting $400/Year on Pool Pump Electricity",
+    "hero_title": "Stop Wasting $400/Year on Pool Pump Electricity",
+    "hero_subtitle": "Get your personalized, climate-optimized pool pump schedule in under 2 minutes",
+    "cta_button": "Calculate My Savings Free",
+    "free_badge": "100% Free",
+    "no_signup": "No Sign-Up Required",
+    "quick_setup": "2-Min Setup",
+    "features_title": "Why Choose PoolCalc?",
+    "save_money_title": "Save Money",
+    "climate_title": "Climate-Optimized",
+    "quick_title": "2-Minute Setup"
+  },
+  "Help": {
+    "meta_title": "Help Center | PoolCalc",
+    "page_title": "Help Center",
+    "page_subtitle": "Find answers to common questions",
+    "faq_title": "Frequently Asked Questions",
+    "need_more_help": "Need More Help?",
+    "calculator_guide": "Calculator Guide",
+    "email_support": "Email Support",
+    "about_poolcalc": "About PoolCalc"
   }
 }

@@ -1,0 +1,706 @@
+# Calculation Engine Rules (.cursorrules-calculations)
+
+## Purpose
+This file contains domain-specific rules for the pool pump optimization calculation engine. These are production-grade calculations that must be accurate, comprehensive, and account for real-world variables.
+
+## Core Calculation Principles
+
+### 1. Accuracy is Critical
+- These calculations directly impact user savings and pool health
+- All formulas must be validated against pool industry standards
+- Include references to formulas in comments
+- Round appropriately (runtime to 0.5 hours, costs to 2 decimals)
+
+### 2. Account for All Variables
+Every calculation MUST consider:
+- Pool physical characteristics (shape, size, type)
+- Pump specifications (type, HP, age, efficiency)
+- Climate factors (temperature, sunlight, humidity)
+- Usage patterns (swimmers, frequency, water features)
+- Environmental factors (landscaping, enclosure)
+- Time and seasonality
+- Electricity pricing (flat rate or time-of-use)
+
+### 3. Modular Design
+- One file per calculation domain
+- Pure functions with clear inputs/outputs
+- No side effects (no API calls, no state mutations)
+- Fully testable with unit tests
+
+## File Structure Requirements
+
+```
+/src/utils/calculations/
+├── index.ts                 # Main orchestrator, exports calculatePoolOptimization()
+├── poolVolume.ts            # Volume calculations (5 shapes)
+├── pumpFlow.ts              # Flow rate with degradation
+├── turnoverRate.ts          # Required turnovers
+├── runtime.ts               # Optimal runtime
+├── schedule.ts              # Time block generation
+├── energyCosts.ts           # Cost calculations
+├── savings.ts               # Savings analysis
+├── climateData.ts           # Climate API integration
+├── recommendations.ts       # Personalized tips
+└── types.ts                 # Shared TypeScript interfaces
+```
+
+## Type Definitions Pattern
+
+```typescript
+// types.ts - Always define comprehensive types
+export interface PoolSpecs {
+  length: number;          // feet
+  width: number;           // feet
+  depth: {
+    shallow: number;       // feet
+    deep: number;          // feet
+  };
+  shape: 'rectangular' | 'kidney' | 'freeform' | 'oval' | 'round';
+  type: 'in-ground' | 'above-ground';
+  surfaceArea?: number;    // Optional, calculated if not provided
+}
+
+export interface PumpSpecs {
+  type: 'single-speed' | 'two-speed' | 'variable-speed';
+  horsepower: 0.5 | 0.75 | 1.0 | 1.5 | 2.0 | 2.5 | 3.0;
+  ageYears: number;
+  variableSpeedSettings?: {
+    lowRPM: number;
+    mediumRPM: number;
+    highRPM: number;
+  };
+  twoSpeedSettings?: {
+    lowHP: number;
+    highHP: number;
+  };
+  flowRateGPM?: number;    // If known, otherwise calculated
+}
+
+export interface CalculationResult {
+  poolVolume: number;
+  pumpFlowRate: number;
+  requiredTurnovers: number;
+  optimalRuntime: number;
+  schedule: ScheduleBlock[];
+  costs: {
+    current: EnergyCosts;
+    optimized: EnergyCosts;
+    savings: SavingsMetrics;
+  };
+  recommendations: string[];
+}
+```
+
+## Pool Volume Calculations
+
+### Required Formulas
+
+```typescript
+/**
+ * Pool volume calculations by shape
+ * All volumes in gallons (multiply cubic feet by 7.5)
+ */
+
+// Rectangular: L × W × AvgDepth × 7.5
+const rectangularVolume = length * width * avgDepth * 7.5;
+
+// Oval: (π/4) × L × W × AvgDepth × 7.5
+const ovalVolume = (Math.PI / 4) * length * width * avgDepth * 7.5;
+
+// Round: π × r² × Depth × 7.5
+const roundVolume = Math.PI * radius * radius * depth * 7.5;
+
+// Kidney/Freeform: Approximate as 0.85 × Rectangular
+const irregularVolume = length * width * avgDepth * 7.5 * 0.85;
+
+// Above-ground: Use deep depth only (more consistent)
+const aboveGroundAdjustment = (type === 'above-ground') 
+  ? depth.deep 
+  : (depth.shallow + depth.deep) / 2;
+```
+
+### Edge Cases to Handle
+
+```typescript
+// Validate inputs
+if (length <= 0 || width <= 0) {
+  throw new Error('Pool dimensions must be positive');
+}
+
+if (depth.shallow > depth.deep) {
+  throw new Error('Shallow depth cannot exceed deep depth');
+}
+
+// Handle very small pools (hot tubs)
+if (calculatedVolume < 500) {
+  console.warn('Very small pool detected. Results may be inaccurate for hot tubs.');
+}
+
+// Handle very large pools (commercial)
+if (calculatedVolume > 100000) {
+  console.warn('Very large pool detected. Consider professional assessment.');
+}
+```
+
+## Pump Flow Rate Calculations
+
+### Base Flow Rates by Horsepower
+
+```typescript
+const baseFlowRates: Record<number, number> = {
+  0.5: 30,   // GPM
+  0.75: 40,
+  1.0: 50,
+  1.5: 65,
+  2.0: 80,
+  2.5: 95,
+  3.0: 110,
+};
+```
+
+### Efficiency Degradation Formula
+
+```typescript
+// Pumps lose ~2% efficiency per year, max 20% loss
+const efficiencyLoss = Math.min(pumpAgeYears * 0.02, 0.20);
+const adjustedFlowRate = baseFlowRate * (1 - efficiencyLoss);
+
+// Variable speed at medium RPM: Flow varies with RPM^0.85 (pump affinity laws)
+if (type === 'variable-speed') {
+  const speedRatio = mediumRPM / 3450; // 3450 is max RPM
+  flowRate = baseFlowRate * Math.pow(speedRatio, 0.85);
+}
+```
+
+## Turnover Rate Calculations
+
+### Temperature-Based Requirements
+
+```typescript
+/**
+ * Base turnover rates by temperature
+ * Source: Pool industry standards (APSP, CDC guidelines)
+ */
+function getBaseTurnovers(temperature: number): number {
+  if (temperature >= 85) return 2.5;      // Hot: more algae, faster chemical depletion
+  if (temperature >= 75) return 2.0;      // Warm
+  if (temperature >= 65) return 1.75;     // Moderate
+  if (temperature >= 50) return 1.5;      // Cool
+  return 1.25;                            // Cold: minimal biological activity
+}
+```
+
+### Adjustment Factors
+
+```typescript
+// Usage intensity multipliers
+const usageMultipliers = {
+  light: 0.9,      // < 5 hours/week, < 3 swimmers
+  moderate: 1.0,   // 5-15 hours/week, 3-6 swimmers
+  heavy: 1.2,      // > 15 hours/week, > 6 swimmers
+};
+
+// Swimmer load: +3% per swimmer up to 10
+const swimmerAdjustment = 1 + (Math.min(averageSwimmers, 10) * 0.03);
+
+// Landscaping (debris load)
+const landscapingMultipliers = {
+  minimal: 0.95,   // Desert, no trees
+  moderate: 1.0,   // Some vegetation
+  heavy: 1.15,     // Many trees, high debris
+};
+
+// Environmental factors
+if (screenEnclosure) turnovers *= 0.90;  // Less debris, less evaporation
+if (hasWaterfall) turnovers *= 1.10;     // More filtration needed
+if (hasSaltSystem) turnovers *= 0.95;    // Gentler on water
+
+// Water clarity (indicates current filtration effectiveness)
+const clarityMultipliers = {
+  'crystal-clear': 0.95,    // Can reduce slightly
+  'slightly-cloudy': 1.0,   // Maintain current
+  'cloudy': 1.2,            // Increase filtration
+};
+```
+
+## Runtime Optimization
+
+### Pump Type Efficiency Factors
+
+```typescript
+/**
+ * Runtime multipliers by pump type
+ * Variable speed can run longer at lower speeds for better filtration
+ */
+const runtimeMultipliers = {
+  'single-speed': 1.0,      // Baseline
+  'two-speed': 1.2,         // 20% longer at low speed
+  'variable-speed': 1.4,    // 40% longer at low speed (most efficient)
+};
+
+// Calculate base runtime from turnovers
+const minutesPerTurnover = poolVolume / flowRateGPM;
+const baseRuntime = (minutesPerTurnover * requiredTurnovers) / 60;
+
+// Apply pump type multiplier
+const optimalRuntime = baseRuntime * runtimeMultipliers[pumpType];
+
+// Round to nearest 0.5 hour for practical implementation
+return Math.round(optimalRuntime * 2) / 2;
+```
+
+## Schedule Generation
+
+### Time-of-Use Optimization
+
+```typescript
+if (hasTimeOfUsePricing) {
+  // Strategy: Avoid peak hours, maximize off-peak usage
+  // Example peak hours: 4 PM - 9 PM
+  
+  // Morning off-peak block (6 AM - 4 PM)
+  schedule.push({
+    startHour: 6,
+    endHour: 6 + highSpeedHours,
+    speedSetting: 'high',
+  });
+  
+  // Night off-peak block (9 PM - 6 AM)
+  schedule.push({
+    startHour: 22,
+    endHour: 22 + lowSpeedHours,
+    speedSetting: 'low',
+  });
+} else {
+  // Water quality optimization: Run during hottest part of day
+  // Prevents algae growth and maintains clarity
+  
+  // Morning circulation (before heat)
+  schedule.push({
+    startHour: sunrise - 1,
+    endHour: sunrise + 2,
+    speedSetting: 'high',
+  });
+  
+  // Afternoon/evening (peak heat/sun)
+  schedule.push({
+    startHour: 14,
+    endHour: 14 + lowSpeedHours,
+    speedSetting: 'low',
+  });
+}
+```
+
+### Variable Speed Schedule Distribution
+
+```typescript
+// Variable speed: Distribute runtime optimally
+// 70% at low speed (energy efficient, long filtration)
+// 30% at high speed (turnover, skimming)
+
+const lowSpeedHours = totalRuntime * 0.7;
+const highSpeedHours = totalRuntime * 0.3;
+
+// Example: 7 hours total = 5 hours low + 2 hours high
+```
+
+## Energy Cost Calculations
+
+### Wattage Formula
+
+```typescript
+/**
+ * Calculate pump wattage
+ * Formula: HP × 746W/HP × Efficiency Factor
+ * Typical pumps run at ~85% efficiency (1.15 multiplier)
+ */
+function calculateWattage(hp: number, speedSetting?: string): number {
+  const baseWattage = hp * 746 * 1.15;
+  
+  if (speedSetting === 'low') {
+    return baseWattage * 0.125;  // Variable/two-speed at low uses ~12.5% power
+  } else if (speedSetting === 'medium') {
+    return baseWattage * 0.40;   // Variable at medium uses ~40% power
+  }
+  
+  return baseWattage; // High speed or single-speed
+}
+```
+
+### Time-of-Use Cost Calculation
+
+```typescript
+function calculateScheduleCost(
+  schedule: ScheduleBlock[],
+  pumpHP: number,
+  touRates: TimeOfUseRates
+): number {
+  let totalCost = 0;
+  
+  for (const block of schedule) {
+    const blockHours = block.endHour - block.startHour;
+    const wattage = calculateWattage(pumpHP, block.speedSetting);
+    const blockKwh = (wattage / 1000) * blockHours;
+    
+    // Calculate overlap with peak hours
+    let peakHours = 0;
+    let offPeakHours = blockHours;
+    
+    for (const peak of touRates.peakHours) {
+      const overlapStart = Math.max(block.startHour, peak.start);
+      const overlapEnd = Math.min(block.endHour, peak.end);
+      
+      if (overlapStart < overlapEnd) {
+        const overlap = overlapEnd - overlapStart;
+        peakHours += overlap;
+        offPeakHours -= overlap;
+      }
+    }
+    
+    const peakRatio = peakHours / blockHours;
+    const offPeakRatio = offPeakHours / blockHours;
+    
+    totalCost += (blockKwh * peakRatio * touRates.peakRate) +
+                 (blockKwh * offPeakRatio * touRates.offPeakRate);
+  }
+  
+  return totalCost;
+}
+```
+
+## Savings Analysis
+
+### ROI Calculation for Variable Speed Upgrade
+
+```typescript
+function calculateUpgradeROI(
+  currentPump: PumpSpecs,
+  currentCosts: EnergyCosts,
+  optimizedCosts: EnergyCosts
+): ROIMetrics | undefined {
+  // Only show if user doesn't have variable speed
+  if (currentPump.type === 'variable-speed') return undefined;
+  
+  // Average variable speed pump cost
+  const upgradeCost = 1500;
+  
+  // Estimate additional savings with variable speed
+  // Variable speed typically saves 30% more than optimized single/two-speed
+  const additionalAnnualSavings = optimizedCosts.annualSavings * 0.30;
+  const totalAnnualSavings = optimizedCosts.annualSavings + additionalAnnualSavings;
+  
+  // Calculate payback period
+  const paybackMonths = (upgradeCost / totalAnnualSavings) * 12;
+  
+  // 5-year savings
+  const fiveYearSavings = (totalAnnualSavings * 5) - upgradeCost;
+  
+  return {
+    upgradeCost,
+    additionalAnnualSavings,
+    paybackMonths: Number(paybackMonths.toFixed(1)),
+    fiveYearSavings: Number(fiveYearSavings.toFixed(2)),
+  };
+}
+```
+
+## Climate Data Integration
+
+### External API Pattern
+
+```typescript
+/**
+ * Fetch climate data from external API
+ * Cache results for 30 days to reduce API calls
+ */
+
+interface ClimateCache {
+  [zipCode: string]: {
+    data: ClimateData;
+    timestamp: number;
+  };
+}
+
+const climateCache: ClimateCache = {};
+const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+export async function getClimateData(zipCode: string): Promise<ClimateData> {
+  // Check cache first
+  const cached = climateCache[zipCode];
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  
+  try {
+    // Call external API (OpenWeatherMap, WeatherAPI, etc.)
+    const response = await fetch(
+      `https://api.weatherapi.com/v1/climate.json?key=${API_KEY}&q=${zipCode}`
+    );
+    
+    if (!response.ok) {
+      throw new Error('API request failed');
+    }
+    
+    const data = await response.json();
+    const climateData = transformAPIResponse(data);
+    
+    // Cache the result
+    climateCache[zipCode] = {
+      data: climateData,
+      timestamp: Date.now(),
+    };
+    
+    return climateData;
+  } catch (error) {
+    console.error('Failed to fetch climate data:', error);
+    
+    // Fallback to state-level defaults
+    const state = zipToState(zipCode);
+    return getStateLevelDefaults(state);
+  }
+}
+```
+
+### State-Level Fallbacks
+
+```typescript
+/**
+ * Fallback climate data by state
+ * Used when API is unavailable or ZIP lookup fails
+ */
+const stateLevelData: Record<string, ClimateData> = {
+  FL: {
+    zone: 'hot-humid',
+    avgTemperatures: {
+      jan: 68, feb: 70, mar: 74, apr: 78, may: 82, jun: 86,
+      jul: 88, aug: 88, sep: 86, oct: 81, nov: 75, dec: 70,
+    },
+    avgSunlightHours: { winter: 7, spring: 9, summer: 10, fall: 8 },
+    avgElectricityRate: 0.14,
+  },
+  CA: {
+    zone: 'marine',
+    avgTemperatures: {
+      jan: 58, feb: 60, mar: 62, apr: 65, may: 68, jun: 72,
+      jul: 75, aug: 76, sep: 75, oct: 70, nov: 64, dec: 58,
+    },
+    avgSunlightHours: { winter: 7, spring: 9, summer: 11, fall: 8 },
+    avgElectricityRate: 0.23,
+  },
+  // ... all 50 states
+};
+```
+
+## Recommendations Generation
+
+### Rules for Personalized Tips
+
+```typescript
+export function generateRecommendations(
+  pool: PoolSpecs,
+  pump: PumpSpecs,
+  location: LocationData,
+  usage: UsageFactors,
+  costs: SavingsMetrics
+): string[] {
+  const recommendations: string[] = [];
+  
+  // Priority 1: Variable speed upgrade (if applicable)
+  if (pump.type === 'single-speed' && costs.roiMetrics) {
+    recommendations.push(
+      `Upgrade to variable-speed pump: Save ${formatCurrency(costs.roiMetrics.fiveYearSavings)} ` +
+      `over 5 years with ${costs.roiMetrics.paybackMonths.toFixed(1)}-month payback.`
+    );
+  }
+  
+  // Priority 2: Peak hour avoidance (hot climates)
+  const currentMonth = new Date().getMonth();
+  const currentTemp = location.avgTemperatures[MONTH_NAMES[currentMonth]];
+  if (currentTemp > 80) {
+    recommendations.push(
+      'Run pump during early morning (6-9 AM) to prevent algae during peak heat.'
+    );
+  }
+  
+  // Priority 3: Pump maintenance (old pumps)
+  if (pump.ageYears > 3) {
+    recommendations.push(
+      `Pump is ${pump.ageYears} years old. Professional maintenance can restore ` +
+      'up to 15% efficiency.'
+    );
+  }
+  
+  // Priority 4: Screen enclosure benefit
+  if (!usage.screenEnclosure && location.climateZone === 'hot-humid') {
+    recommendations.push(
+      'Screen enclosure could reduce filtration needs 10% by minimizing debris.'
+    );
+  }
+  
+  // Priority 5: Water chemistry
+  if (usage.waterClarity !== 'crystal-clear') {
+    recommendations.push(
+      'Proper water chemistry can reduce filtration time up to 20%.'
+    );
+  }
+  
+  // Priority 6: Seasonal adjustment
+  if ([11, 0, 1].includes(currentMonth)) { // Winter
+    recommendations.push(
+      'During winter, safely reduce runtime 1-2 hours if water stays clear and temp < 65°F.'
+    );
+  }
+  
+  return recommendations;
+}
+```
+
+## Testing Requirements
+
+### Unit Test Coverage
+
+Every calculation function MUST have:
+- Happy path tests with typical values
+- Edge case tests (min/max values)
+- Error handling tests
+- Real-world scenario tests
+
+```typescript
+// Example test suite
+describe('calculatePoolVolume', () => {
+  // Happy path
+  it('calculates rectangular pool correctly', () => {
+    expect(calculatePoolVolume(/* typical values */)).toBe(expected);
+  });
+  
+  // Edge cases
+  it('handles minimum pool size', () => {
+    expect(calculatePoolVolume(/* 8x8x3 */)).toBeLessThan(2000);
+  });
+  
+  it('handles maximum pool size', () => {
+    expect(calculatePoolVolume(/* 100x50x12 */)).toBeGreaterThan(200000);
+  });
+  
+  // Error handling
+  it('throws on negative dimensions', () => {
+    expect(() => calculatePoolVolume(/* negative */)).toThrow();
+  });
+  
+  // Real-world scenarios
+  it('matches industry calculator for standard pool', () => {
+    // 30x15x6 rectangular = 20,250 gallons
+    expect(calculatePoolVolume({
+      length: 30,
+      width: 15,
+      depth: { shallow: 4, deep: 8 },
+      shape: 'rectangular',
+      type: 'in-ground',
+    })).toBe(20250);
+  });
+});
+```
+
+## Performance Considerations
+
+### Memoization for Expensive Calculations
+
+```typescript
+// Cache climate data lookups
+const climateCache = new Map<string, ClimateData>();
+
+// Cache calculation results for identical inputs
+const calculationCache = new Map<string, CalculationResult>();
+
+function getCacheKey(input: any): string {
+  return JSON.stringify(input);
+}
+
+export function calculatePoolOptimization(input: CalculationInput): CalculationResult {
+  const cacheKey = getCacheKey(input);
+  
+  if (calculationCache.has(cacheKey)) {
+    return calculationCache.get(cacheKey)!;
+  }
+  
+  const result = performCalculation(input);
+  calculationCache.set(cacheKey, result);
+  
+  return result;
+}
+```
+
+### Avoid Unnecessary Recalculations
+
+```typescript
+// Only recalculate when inputs change
+// Use React.useMemo in components
+const result = useMemo(() => {
+  return calculatePoolOptimization(formData);
+}, [formData]); // Only recalc when formData changes
+```
+
+## Documentation Standards
+
+Every calculation file must include:
+
+```typescript
+/**
+ * @fileoverview Pool volume calculations for all supported pool shapes
+ * 
+ * Formulas based on:
+ * - APSP (Association of Pool & Spa Professionals) guidelines
+ * - Industry standard volume calculations
+ * - 7.5 gallons per cubic foot conversion factor
+ * 
+ * @see https://www.apsp.org/
+ */
+
+/**
+ * Calculate pool volume in gallons
+ * 
+ * @param specs - Pool specifications including dimensions and shape
+ * @returns Volume in gallons (rounded to nearest whole number)
+ * 
+ * @throws {Error} If dimensions are invalid (negative or zero)
+ * 
+ * @example
+ * ```typescript
+ * const volume = calculatePoolVolume({
+ *   length: 30,
+ *   width: 15,
+ *   depth: { shallow: 4, deep: 8 },
+ *   shape: 'rectangular',
+ *   type: 'in-ground'
+ * });
+ * // Returns: 20250
+ * ```
+ */
+export function calculatePoolVolume(specs: PoolSpecs): number {
+  // Implementation
+}
+```
+
+## Common Mistakes to Avoid
+
+❌ **Don't:**
+- Mix units (feet vs meters, gallons vs liters)
+- Forget to validate inputs
+- Hardcode values that should be configurable
+- Skip error handling
+- Omit JSDoc comments
+- Use imprecise rounding (Math.floor when should round to 0.5)
+- Ignore pump efficiency degradation
+- Forget seasonal variations
+
+✅ **Do:**
+- Use consistent units throughout (feet, gallons, hours)
+- Validate all inputs at function entry
+- Use constants and configuration objects
+- Handle errors gracefully with fallbacks
+- Document formulas with sources
+- Round appropriately for practical use
+- Account for real-world pump aging
+- Adjust calculations seasonally
+
+Remember: These calculations directly impact user decisions on equipment purchases (thousands of dollars) and ongoing electricity costs. Accuracy and comprehensiveness are paramount.

@@ -1,0 +1,1106 @@
+---
+alwaysApply: false
+---
+# Database & API Rules (.cursorrules-database)
+
+## Purpose
+Rules for database operations with Drizzle ORM, API route patterns, server actions, and data fetching in Next.js 16.
+
+## Database Architecture
+
+### Drizzle ORM with PGLite (Local) & PostgreSQL (Production)
+
+**Local Development:**
+- PGLite runs automatically via `npm run dev`
+- Data persists in `local.db` file
+- No Docker required
+- Migrations run automatically on startup
+
+**Production:**
+- Standard PostgreSQL via DATABASE_URL
+- Use Prisma.io or any PostgreSQL provider
+- Run `npm run db:migrate` during deployment
+
+### Schema Conventions
+
+```typescript
+// src/models/Schema.ts
+
+import {
+  pgTable,
+  uuid,
+  varchar,
+  integer,
+  decimal,
+  boolean,
+  timestamp,
+} from 'drizzle-orm/pg-core';
+
+// RULES:
+// 1. Use snake_case for database column names
+// 2. Use camelCase for TypeScript property names (Drizzle infers)
+// 3. UUID primary keys with defaultRandom()
+// 4. Always include createdAt and updatedAt timestamps
+// 5. Use proper decimal precision for money and measurements
+// 6. Add indexes for foreign keys and frequently queried columns
+
+export const userPoolsTable = pgTable('user_pools', {
+  // Primary key
+  id: uuid('id').defaultRandom().primaryKey(),
+  
+  // Foreign key (Clerk user ID)
+  userId: varchar('user_id', { length: 255 }).notNull(),
+  
+  // Strings with max length
+  poolName: varchar('pool_name', { length: 100 }).default('My Pool').notNull(),
+  poolShape: varchar('pool_shape', { length: 20 }).notNull(),
+  
+  // Decimals for measurements (precision, scale)
+  poolLength: decimal('pool_length', { precision: 5, scale: 2 }).notNull(),
+  pumpHorsepower: decimal('pump_horsepower', { precision: 3, scale: 2 }).notNull(),
+  electricityRate: decimal('electricity_rate', { precision: 5, scale: 3 }).notNull(),
+  
+  // Decimals for money (8 digits, 2 decimal places)
+  monthlySavings: decimal('monthly_savings', { precision: 8, scale: 2 }),
+  annualSavings: decimal('annual_savings', { precision: 8, scale: 2 }),
+  
+  // Integers
+  poolVolume: integer('pool_volume').notNull(),
+  
+  // Booleans
+  hasWaterfall: boolean('has_waterfall').notNull(),
+  screenEnclosure: boolean('screen_enclosure').notNull(),
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Indexes for performance
+// Add indexes in migration files or here:
+// CREATE INDEX idx_user_pools_user_id ON user_pools(user_id);
+
+// Type exports for TypeScript
+export type UserPool = typeof userPoolsTable.$inferSelect;
+export type NewUserPool = typeof userPoolsTable.$inferInsert;
+```
+
+### Migration Workflow
+
+```bash
+# After modifying Schema.ts:
+
+# 1. Generate migration file
+npm run db:generate
+
+# This creates /migrations/0001_migration_name.sql
+
+# 2. Review the generated SQL
+# Make sure it's correct before applying
+
+# 3. Apply migration (happens automatically on npm run dev)
+npm run db:migrate
+
+# 4. Optional: Open Drizzle Studio to inspect database
+npm run db:studio
+```
+
+### Migration File Pattern
+
+```sql
+-- Example migration: /migrations/0001_create_user_pools.sql
+
+CREATE TABLE user_pools (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id VARCHAR(255) NOT NULL,
+  pool_name VARCHAR(100) NOT NULL DEFAULT 'My Pool',
+  pool_length DECIMAL(5,2) NOT NULL,
+  pool_width DECIMAL(5,2) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX idx_user_pools_user_id ON user_pools(user_id);
+CREATE INDEX idx_user_pools_created_at ON user_pools(created_at DESC);
+```
+
+## Database Operations
+
+### File Structure
+
+```
+/src/utils/db/
+├── index.ts              # Export all operations
+├── pools.ts              # Pool CRUD operations
+├── settings.ts           # User settings operations
+└── types.ts              # Shared types
+```
+
+### CRUD Pattern
+
+```typescript
+// src/utils/db/pools.ts
+
+import { db } from '@/libs/DB';
+import { userPoolsTable, type NewUserPool, type UserPool } from '@/models/Schema';
+import { eq, and, desc } from 'drizzle-orm';
+
+/**
+ * Get all pools for a user
+ * ALWAYS filter by userId for security
+ */
+export async function getUserPools(userId: string): Promise<UserPool[]> {
+  try {
+    const pools = await db
+      .select()
+      .from(userPoolsTable)
+      .where(eq(userPoolsTable.userId, userId))
+      .orderBy(desc(userPoolsTable.isPrimary), desc(userPoolsTable.updatedAt));
+    
+    return pools;
+  } catch (error) {
+    console.error('Failed to fetch user pools:', error);
+    throw new Error('Unable to fetch pool configurations');
+  }
+}
+
+/**
+ * Get single pool by ID
+ * MUST verify ownership with userId
+ */
+export async function getPool(
+  id: string,
+  userId: string
+): Promise<UserPool | null> {
+  try {
+    const [pool] = await db
+      .select()
+      .from(userPoolsTable)
+      .where(
+        and(
+          eq(userPoolsTable.id, id),
+          eq(userPoolsTable.userId, userId) // Security: verify ownership
+        )
+      );
+    
+    return pool || null;
+  } catch (error) {
+    console.error('Failed to fetch pool:', error);
+    throw new Error('Unable to fetch pool configuration');
+  }
+}
+
+/**
+ * Create new pool
+ * Returns the created pool with all fields
+ */
+export async function createPool(data: NewUserPool): Promise<UserPool> {
+  try {
+    const [pool] = await db
+      .insert(userPoolsTable)
+      .values({
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    
+    return pool;
+  } catch (error) {
+    console.error('Failed to create pool:', error);
+    throw new Error('Unable to create pool configuration');
+  }
+}
+
+/**
+ * Update existing pool
+ * MUST verify ownership with userId
+ */
+export async function updatePool(
+  id: string,
+  userId: string,
+  data: Partial<NewUserPool>
+): Promise<UserPool> {
+  try {
+    const [pool] = await db
+      .update(userPoolsTable)
+      .set({
+        ...data,
+        updatedAt: new Date(), // Always update timestamp
+      })
+      .where(
+        and(
+          eq(userPoolsTable.id, id),
+          eq(userPoolsTable.userId, userId) // Security: verify ownership
+        )
+      )
+      .returning();
+    
+    if (!pool) {
+      throw new Error('Pool not found or access denied');
+    }
+    
+    return pool;
+  } catch (error) {
+    console.error('Failed to update pool:', error);
+    throw new Error('Unable to update pool configuration');
+  }
+}
+
+/**
+ * Delete pool
+ * MUST verify ownership with userId
+ */
+export async function deletePool(
+  id: string,
+  userId: string
+): Promise<void> {
+  try {
+    const result = await db
+      .delete(userPoolsTable)
+      .where(
+        and(
+          eq(userPoolsTable.id, id),
+          eq(userPoolsTable.userId, userId) // Security: verify ownership
+        )
+      );
+    
+    // Drizzle doesn't return affected rows count by default
+    // If you need to verify deletion, query first
+  } catch (error) {
+    console.error('Failed to delete pool:', error);
+    throw new Error('Unable to delete pool configuration');
+  }
+}
+
+/**
+ * Get aggregate statistics for dashboard
+ */
+export async function getPoolStats(userId: string) {
+  try {
+    const pools = await getUserPools(userId);
+    
+    const totalMonthlySavings = pools.reduce(
+      (sum, pool) => sum + Number(pool.monthlySavings || 0),
+      0
+    );
+    
+    const totalAnnualKwhSaved = pools.reduce((sum, pool) => {
+      // Calculate based on current vs optimized runtime
+      const currentKwh = 
+        Number(pool.currentDailyRuntime) * 
+        Number(pool.pumpHorsepower) * 
+        746 * 1.15 / 1000;
+      
+      const optimizedKwh = 
+        Number(pool.recommendedRuntime) * 
+        Number(pool.pumpHorsepower) * 
+        746 * 1.15 / 1000;
+      
+      return sum + ((currentKwh - optimizedKwh) * 365);
+    }, 0);
+    
+    // Calculate average efficiency score
+    const avgEfficiency = pools.length > 0
+      ? pools.reduce((sum, pool) => sum + Number(pool.percentReduction || 0), 0) / pools.length
+      : 0;
+    
+    return {
+      totalPools: pools.length,
+      totalMonthlySavings: Number(totalMonthlySavings.toFixed(2)),
+      totalAnnualKwhSaved: Math.round(totalAnnualKwhSaved),
+      avgEfficiency: Math.round(avgEfficiency),
+    };
+  } catch (error) {
+    console.error('Failed to calculate pool stats:', error);
+    throw new Error('Unable to calculate statistics');
+  }
+}
+```
+
+### Transaction Pattern
+
+```typescript
+// Use transactions for multi-table operations
+
+import { db } from '@/libs/DB';
+import { userPoolsTable, userSettingsTable } from '@/models/Schema';
+
+export async function createPoolWithSettings(
+  poolData: NewUserPool,
+  settingsData: Partial<NewUserSettings>
+) {
+  try {
+    // Drizzle transaction pattern
+    const result = await db.transaction(async (tx) => {
+      // Create pool
+      const [pool] = await tx
+        .insert(userPoolsTable)
+        .values(poolData)
+        .returning();
+      
+      // Update user settings
+      await tx
+        .update(userSettingsTable)
+        .set(settingsData)
+        .where(eq(userSettingsTable.userId, poolData.userId));
+      
+      return pool;
+    });
+    
+    return result;
+  } catch (error) {
+    console.error('Transaction failed:', error);
+    throw new Error('Unable to complete operation');
+  }
+}
+```
+
+## Server Actions (Recommended for Mutations)
+
+### Pattern for Server Actions
+
+```typescript
+// src/app/actions/pools.actions.ts
+'use server';
+
+import { auth } from '@clerk/nextjs';
+import { revalidatePath } from 'next/cache';
+import { createPool, updatePool, deletePool } from '@/utils/db/pools';
+import { poolSchema } from '@/validations/pool';
+import type { NewUserPool } from '@/models/Schema';
+
+/**
+ * Server action to create a new pool
+ * Automatically handles authentication and validation
+ */
+export async function createPoolAction(data: NewUserPool) {
+  try {
+    // Get authenticated user
+    const { userId } = auth();
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+    
+    // Validate input
+    const validated = poolSchema.parse(data);
+    
+    // Create pool
+    const pool = await createPool({
+      ...validated,
+      userId,
+    });
+    
+    // Revalidate dashboard to show new pool
+    revalidatePath('/dashboard');
+    
+    return { success: true, pool };
+  } catch (error) {
+    console.error('Failed to create pool:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to create pool'
+    };
+  }
+}
+
+/**
+ * Server action to update a pool
+ */
+export async function updatePoolAction(
+  id: string,
+  data: Partial<NewUserPool>
+) {
+  try {
+    const { userId } = auth();
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+    
+    // Validate input
+    const validated = poolSchema.partial().parse(data);
+    
+    // Update pool (includes ownership verification)
+    const pool = await updatePool(id, userId, validated);
+    
+    // Revalidate specific pool page and dashboard
+    revalidatePath(`/dashboard/pools/${id}`);
+    revalidatePath('/dashboard');
+    
+    return { success: true, pool };
+  } catch (error) {
+    console.error('Failed to update pool:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to update pool'
+    };
+  }
+}
+
+/**
+ * Server action to delete a pool
+ */
+export async function deletePoolAction(id: string) {
+  try {
+    const { userId } = auth();
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+    
+    // Delete pool (includes ownership verification)
+    await deletePool(id, userId);
+    
+    // Revalidate dashboard
+    revalidatePath('/dashboard');
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to delete pool:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to delete pool'
+    };
+  }
+}
+```
+
+### Using Server Actions in Components
+
+```typescript
+'use client';
+
+import { useTransition } from 'react';
+import { createPoolAction } from '@/app/actions/pools.actions';
+import { toast } from '@/components/ui/Toast';
+
+export function SavePoolButton({ poolData }: { poolData: NewUserPool }) {
+  const [isPending, startTransition] = useTransition();
+  
+  const handleSave = () => {
+    startTransition(async () => {
+      const result = await createPoolAction(poolData);
+      
+      if (result.success) {
+        toast.success('Pool saved successfully!');
+        // Optionally redirect
+        // router.push('/dashboard');
+      } else {
+        toast.error(result.error || 'Failed to save pool');
+      }
+    });
+  };
+  
+  return (
+    <Button
+      onClick={handleSave}
+      isLoading={isPending}
+      disabled={isPending}
+    >
+      Save Pool Configuration
+    </Button>
+  );
+}
+```
+
+## API Routes (Alternative Pattern)
+
+### RESTful API Route Structure
+
+```typescript
+// src/app/api/pools/route.ts
+
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs';
+import { getUserPools, createPool } from '@/utils/db/pools';
+import { poolSchema } from '@/validations/pool';
+import { z } from 'zod';
+
+/**
+ * GET /api/pools
+ * List all pools for authenticated user
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const { userId } = auth();
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+    
+    const pools = await getUserPools(userId);
+    
+    return NextResponse.json({ pools });
+  } catch (error) {
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/pools
+ * Create new pool for authenticated user
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const { userId } = auth();
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+    
+    const body = await request.json();
+    
+    // Validate input
+    const validated = poolSchema.parse(body);
+    
+    // Create pool
+    const pool = await createPool({
+      ...validated,
+      userId,
+    });
+    
+    return NextResponse.json({ pool }, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid input',
+          details: error.errors
+        },
+        { status: 400 }
+      );
+    }
+    
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Dynamic Route Pattern
+
+```typescript
+// src/app/api/pools/[id]/route.ts
+
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs';
+import { getPool, updatePool, deletePool } from '@/utils/db/pools';
+import { poolSchema } from '@/validations/pool';
+
+interface RouteContext {
+  params: { id: string };
+}
+
+/**
+ * GET /api/pools/[id]
+ * Get single pool by ID
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: RouteContext
+) {
+  try {
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const pool = await getPool(params.id, userId);
+    
+    if (!pool) {
+      return NextResponse.json({ error: 'Pool not found' }, { status: 404 });
+    }
+    
+    return NextResponse.json({ pool });
+  } catch (error) {
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PUT /api/pools/[id]
+ * Update pool by ID
+ */
+export async function PUT(
+  request: NextRequest,
+  { params }: RouteContext
+) {
+  try {
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const body = await request.json();
+    const validated = poolSchema.partial().parse(body);
+    
+    const pool = await updatePool(params.id, userId, validated);
+    
+    return NextResponse.json({ pool });
+  } catch (error) {
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/pools/[id]
+ * Delete pool by ID
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: RouteContext
+) {
+  try {
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    await deletePool(params.id, userId);
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+## Data Fetching in Server Components
+
+### Fetching Data Directly
+
+```typescript
+// src/app/[locale]/(auth)/dashboard/page.tsx
+
+import { auth } from '@clerk/nextjs';
+import { redirect } from 'next/navigation';
+import { getUserPools, getPoolStats } from '@/utils/db/pools';
+import { PoolGrid } from '@/components/dashboard/PoolGrid';
+import { StatCard } from '@/components/dashboard/StatCard';
+
+export default async function DashboardPage() {
+  const { userId } = auth();
+  
+  if (!userId) {
+    redirect('/auth/sign-in');
+  }
+  
+  // Fetch data directly in server component
+  const [pools, stats] = await Promise.all([
+    getUserPools(userId),
+    getPoolStats(userId),
+  ]);
+  
+  return (
+    <div className="space-y-8">
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          label="Total Monthly Savings"
+          value={`$${stats.totalMonthlySavings}`}
+          icon={<DollarIcon />}
+          iconBgColor="success"
+        />
+        {/* More stat cards... */}
+      </div>
+      
+      {/* Pools */}
+      <PoolGrid pools={pools} />
+    </div>
+  );
+}
+```
+
+### Loading States with Suspense
+
+```typescript
+// src/app/[locale]/(auth)/dashboard/page.tsx
+
+import { Suspense } from 'react';
+import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton';
+
+export default function DashboardPage() {
+  return (
+    <div className="space-y-8">
+      <Suspense fallback={<StatsLoading />}>
+        <StatsSection />
+      </Suspense>
+      
+      <Suspense fallback={<PoolsLoading />}>
+        <PoolsSection />
+      </Suspense>
+    </div>
+  );
+}
+
+async function StatsSection() {
+  const { userId } = auth();
+  const stats = await getPoolStats(userId!);
+  
+  return <StatsDisplay stats={stats} />;
+}
+
+async function PoolsSection() {
+  const { userId } = auth();
+  const pools = await getUserPools(userId!);
+  
+  return <PoolGrid pools={pools} />;
+}
+```
+
+## Validation with Zod
+
+### Schema Definition
+
+```typescript
+// src/validations/pool.ts
+
+import { z } from 'zod';
+
+export const poolSpecsSchema = z.object({
+  length: z.number().min(8).max(100),
+  width: z.number().min(5).max(50),
+  depth: z.object({
+    shallow: z.number().min(2).max(6),
+    deep: z.number().min(4).max(12),
+  }),
+  shape: z.enum(['rectangular', 'kidney', 'freeform', 'oval', 'round']),
+  type: z.enum(['in-ground', 'above-ground']),
+});
+
+export const pumpSpecsSchema = z.object({
+  type: z.enum(['single-speed', 'two-speed', 'variable-speed']),
+  horsepower: z.number().refine(
+    (val) => [0.5, 0.75, 1.0, 1.5, 2.0, 2.5, 3.0].includes(val),
+    'Invalid horsepower value'
+  ),
+  ageYears: z.number().min(0).max(30),
+});
+
+export const poolSchema = z.object({
+  poolName: z.string().min(1).max(100),
+  poolVolume: z.number().positive(),
+  poolSpecs: poolSpecsSchema,
+  pumpSpecs: pumpSpecsSchema,
+  zipCode: z.string().regex(/^\d{5}$/, 'Invalid ZIP code'),
+  electricityRate: z.number().min(0.05).max(0.50),
+  // ... more fields
+});
+
+export type PoolSchema = z.infer<typeof poolSchema>;
+```
+
+### Using Validation
+
+```typescript
+// In server action or API route
+
+import { poolSchema } from '@/validations/pool';
+
+try {
+  const validated = poolSchema.parse(data);
+  // Use validated data
+} catch (error) {
+  if (error instanceof z.ZodError) {
+    // Handle validation errors
+    return {
+      success: false,
+      errors: error.errors.map(e => ({
+        field: e.path.join('.'),
+        message: e.message,
+      })),
+    };
+  }
+}
+```
+
+## Error Handling Standards
+
+### Database Errors
+
+```typescript
+// Always wrap database operations in try-catch
+// Log errors for debugging
+// Return user-friendly messages
+
+export async function getUserPools(userId: string) {
+  try {
+    const pools = await db
+      .select()
+      .from(userPoolsTable)
+      .where(eq(userPoolsTable.userId, userId));
+    
+    return pools;
+  } catch (error) {
+    // Log technical error for debugging
+    console.error('Database error fetching pools:', {
+      error,
+      userId,
+      timestamp: new Date().toISOString(),
+    });
+    
+    // Throw user-friendly error
+    throw new Error('Unable to fetch pool configurations. Please try again.');
+  }
+}
+```
+
+### API Error Response Pattern
+
+```typescript
+// Consistent error response format
+
+interface ErrorResponse {
+  error: string;
+  details?: unknown;
+  code?: string;
+}
+
+// Usage
+return NextResponse.json(
+  {
+    error: 'Validation failed',
+    details: zodError.errors,
+    code: 'VALIDATION_ERROR',
+  } satisfies ErrorResponse,
+  { status: 400 }
+);
+```
+
+## Security Best Practices
+
+### Always Verify Ownership
+
+```typescript
+// ❌ BAD: No ownership verification
+export async function getPool(id: string) {
+  const [pool] = await db
+    .select()
+    .from(userPoolsTable)
+    .where(eq(userPoolsTable.id, id));
+  return pool;
+}
+
+// ✅ GOOD: Verify user owns the pool
+export async function getPool(id: string, userId: string) {
+  const [pool] = await db
+    .select()
+    .from(userPoolsTable)
+    .where(
+      and(
+        eq(userPoolsTable.id, id),
+        eq(userPoolsTable.userId, userId) // Ownership check
+      )
+    );
+  return pool;
+}
+```
+
+### Sanitize Inputs
+
+```typescript
+// Use Zod for validation and sanitization
+import { z } from 'zod';
+
+const userInputSchema = z.object({
+  poolName: z.string()
+    .trim()
+    .min(1)
+    .max(100)
+    .regex(/^[a-zA-Z0-9\s-]+$/, 'Invalid characters in pool name'),
+});
+```
+
+### Rate Limiting (Production)
+
+```typescript
+// Use middleware or API route protection
+// Example with upstash/ratelimit
+
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, '10 s'),
+});
+
+export async function POST(request: NextRequest) {
+  const identifier = request.ip || 'anonymous';
+  const { success } = await ratelimit.limit(identifier);
+  
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429 }
+    );
+  }
+  
+  // Handle request...
+}
+```
+
+## Performance Optimization
+
+### Database Indexes
+
+```sql
+-- Add indexes for frequently queried columns
+
+-- User ID (most common query)
+CREATE INDEX idx_user_pools_user_id ON user_pools(user_id);
+
+-- Created at for sorting
+CREATE INDEX idx_user_pools_created_at ON user_pools(created_at DESC);
+
+-- Composite index for common queries
+CREATE INDEX idx_user_pools_user_created ON user_pools(user_id, created_at DESC);
+```
+
+### Query Optimization
+
+```typescript
+// ❌ BAD: N+1 query problem
+const pools = await getUserPools(userId);
+for (const pool of pools) {
+  const details = await getPoolDetails(pool.id); // N queries
+}
+
+// ✅ GOOD: Single query with all data
+const pools = await db
+  .select({
+    // Select all needed fields at once
+  })
+  .from(userPoolsTable)
+  .where(eq(userPoolsTable.userId, userId));
+```
+
+### Caching Strategy
+
+```typescript
+// Use Next.js cache for expensive operations
+
+import { unstable_cache } from 'next/cache';
+
+export const getCachedPoolStats = unstable_cache(
+  async (userId: string) => {
+    return await getPoolStats(userId);
+  },
+  ['pool-stats'],
+  {
+    revalidate: 3600, // 1 hour
+    tags: [`user-${userId}`],
+  }
+);
+
+// Invalidate cache when data changes
+import { revalidateTag } from 'next/cache';
+
+export async function updatePoolAction(id: string, data: Partial<NewUserPool>) {
+  const { userId } = auth();
+  const pool = await updatePool(id, userId!, data);
+  
+  // Invalidate cache
+  revalidateTag(`user-${userId}`);
+  
+  return { success: true, pool };
+}
+```
+
+## Testing Database Operations
+
+```typescript
+// tests/integration/pools.test.ts
+
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { createPool, getUserPools, updatePool, deletePool } from '@/utils/db/pools';
+
+describe('Pool Database Operations', () => {
+  const testUserId = 'test-user-123';
+  let createdPoolId: string;
+  
+  beforeAll(async () => {
+    // Setup test data
+  });
+  
+  afterAll(async () => {
+    // Cleanup test data
+  });
+  
+  it('creates a new pool', async () => {
+    const pool = await createPool({
+      userId: testUserId,
+      poolName: 'Test Pool',
+      poolVolume: 20000,
+      // ... other fields
+    });
+    
+    expect(pool).toBeDefined();
+    expect(pool.poolName).toBe('Test Pool');
+    createdPoolId = pool.id;
+  });
+  
+  it('fetches user pools', async () => {
+    const pools = await getUserPools(testUserId);
+    
+    expect(pools).toHaveLength(1);
+    expect(pools[0].id).toBe(createdPoolId);
+  });
+  
+  it('updates a pool', async () => {
+    const updated = await updatePool(createdPoolId, testUserId, {
+      poolName: 'Updated Pool',
+    });
+    
+    expect(updated.poolName).toBe('Updated Pool');
+  });
+  
+  it('prevents unauthorized access', async () => {
+    await expect(
+      updatePool(createdPoolId, 'different-user', { poolName: 'Hack' })
+    ).rejects.toThrow();
+  });
+  
+  it('deletes a pool', async () => {
+    await deletePool(createdPoolId, testUserId);
+    
+    const pools = await getUserPools(testUserId);
+    expect(pools).toHaveLength(0);
+  });
+});
+```
+
+Remember: 
+- Always filter by userId for security
+- Use transactions for multi-table operations
+- Validate inputs with Zod
+- Handle errors gracefully
+- Log errors for debugging
+- Cache expensive operations
+- Add indexes for performance
+- Test ownership verification

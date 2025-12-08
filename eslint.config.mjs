@@ -43,10 +43,12 @@ export default antfu(
     },
   },
   // --- E2E Testing Rules ---
+  // Apply Playwright rules to all .e2e.ts files and .spec.ts files in e2e directories
   {
     files: [
-      '**/*.spec.ts',
       '**/*.e2e.ts',
+      'e2e/**/*.spec.ts',
+      'tests/e2e/**/*.spec.ts',
     ],
     ...playwright.configs['flat/recommended'],
   },

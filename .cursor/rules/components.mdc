@@ -1,0 +1,1007 @@
+---
+alwaysApply: false
+---
+# UI Component Rules (.cursorrules-components)
+
+## Purpose
+Rules for building custom UI components with Tailwind CSS 4.1.17 following Design.json specifications. No external component libraries (shadcn/ui, Chakra, MUI) - build everything from scratch.
+
+## Design System Compliance
+
+### Always Start Here
+Before creating ANY component:
+1. Open `/Design.json` at project root
+2. Find the relevant component specification
+3. Note exact colors, spacing, typography, shadows
+4. Implement EXACTLY as specified
+
+### Critical Design Rules
+
+**Gradients - ONLY on these elements:**
+```typescript
+// Hero sections
+className="bg-gradient-to-br from-[#2563EB] to-[#10B981]"
+
+// Primary CTA buttons
+className="bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-black"
+
+// Pool cards (rotate these 4 gradients)
+const gradients = [
+  'from-[#3B82F6] to-[#2563EB]',  // Blue
+  'from-[#10B981] to-[#059669]',  // Green
+  'from-[#A855F7] to-[#9333EA]',  // Purple
+  'from-[#EC4899] to-[#DB2777]',  // Pink
+];
+
+// Add Pool button
+className="bg-gradient-to-r from-[#2563EB] to-[#10B981]"
+```
+
+**NO gradients on:**
+- Navigation/header (white background)
+- Text elements
+- Form inputs
+- Icons (standalone)
+- Secondary buttons
+- Dashboard stat cards
+
+## Component Architecture
+
+### File Structure Pattern
+
+```
+/src/components/
+├── ui/                          # Primitive components
+│   ├── Button.tsx               # All button variants
+│   ├── Input.tsx                # Text input with label/error
+│   ├── Select.tsx               # Dropdown with custom styling
+│   ├── Checkbox.tsx             # Checkbox with label
+│   ├── Radio.tsx                # Radio button with label
+│   ├── Slider.tsx               # Range slider
+│   ├── Toggle.tsx               # Boolean toggle switch
+│   ├── Card.tsx                 # Base card component
+│   ├── Badge.tsx                # Status badges
+│   ├── Modal.tsx                # Base modal overlay
+│   ├── Toast.tsx                # Notification system
+│   ├── Tooltip.tsx              # Hover tooltips
+│   ├── Tabs.tsx                 # Tab navigation
+│   ├── Accordion.tsx            # Collapsible sections
+│   └── index.ts                 # Export all primitives
+├── calculator/                  # Feature-specific
+├── dashboard/
+├── charts/
+├── layout/
+└── shared/
+```
+
+### Component Template
+
+```typescript
+// Every component should follow this pattern:
+
+import { cn } from '@/utils/cn'; // Tailwind class merger
+import type { ComponentProps } from 'react';
+
+export interface ButtonProps extends ComponentProps<'button'> {
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  isLoading?: boolean;
+  children: React.ReactNode;
+}
+
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  isLoading = false,
+  children,
+  className,
+  disabled,
+  ...props
+}: ButtonProps) {
+  const baseStyles = "inline-flex items-center justify-center font-semibold rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+  
+  const variantStyles = {
+    primary: "bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-black hover:from-[#D97706] hover:to-[#B45309] focus:ring-amber-500",
+    secondary: "bg-white text-blue-600 border-2 border-blue-600 hover:bg-blue-50 focus:ring-blue-500",
+    ghost: "bg-transparent text-gray-600 hover:bg-gray-100 focus:ring-gray-400",
+    danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
+  };
+  
+  const sizeStyles = {
+    sm: "px-3 py-1.5 text-sm",
+    md: "px-4 py-2 text-base",
+    lg: "px-6 py-3 text-lg",
+  };
+  
+  return (
+    <button
+      className={cn(
+        baseStyles,
+        variantStyles[variant],
+        sizeStyles[size],
+        className
+      )}
+      disabled={disabled || isLoading}
+      {...props}
+    >
+      {isLoading ? (
+        <>
+          <LoadingSpinner className="mr-2" />
+          Loading...
+        </>
+      ) : (
+        children
+      )}
+    </button>
+  );
+}
+```
+
+## Primitive Components
+
+### Button Component
+
+```typescript
+// src/components/ui/Button.tsx
+
+export interface ButtonProps extends ComponentProps<'button'> {
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  fullWidth?: boolean;
+  isLoading?: boolean;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+}
+
+// Variants from Design.json:
+// - Primary: Gradient background, black text
+// - Secondary: White bg, blue border and text
+// - Ghost: Transparent, gray text
+// - Danger: Red background, white text
+
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  fullWidth = false,
+  isLoading = false,
+  leftIcon,
+  rightIcon,
+  children,
+  className,
+  disabled,
+  ...props
+}: ButtonProps) {
+  return (
+    <button
+      className={cn(
+        // Base styles
+        "inline-flex items-center justify-center gap-2",
+        "font-semibold rounded-md transition-all duration-200",
+        "focus:outline-none focus:ring-2 focus:ring-offset-2",
+        "disabled:opacity-50 disabled:cursor-not-allowed",
+        
+        // Variant styles
+        variant === 'primary' && [
+          "bg-gradient-to-r from-[#F59E0B] to-[#D97706]",
+          "text-black shadow-[0_4px_12px_rgba(245,158,11,0.3)]",
+          "hover:from-[#D97706] hover:to-[#B45309]",
+          "hover:shadow-[0_6px_16px_rgba(245,158,11,0.4)]",
+          "focus:ring-amber-500",
+        ],
+        variant === 'secondary' && [
+          "bg-white text-blue-600",
+          "border-2 border-blue-600",
+          "hover:bg-blue-50",
+          "focus:ring-blue-500",
+        ],
+        variant === 'ghost' && [
+          "bg-transparent text-gray-600",
+          "hover:bg-gray-100",
+          "focus:ring-gray-400",
+        ],
+        variant === 'danger' && [
+          "bg-red-600 text-white",
+          "hover:bg-red-700",
+          "focus:ring-red-500",
+        ],
+        
+        // Size styles
+        size === 'sm' && "px-3 py-1.5 text-sm",
+        size === 'md' && "px-4 py-2 text-base",
+        size === 'lg' && "px-6 py-3 text-lg",
+        
+        // Full width
+        fullWidth && "w-full",
+        
+        className
+      )}
+      disabled={disabled || isLoading}
+      {...props}
+    >
+      {isLoading && <LoadingSpinner size="sm" />}
+      {!isLoading && leftIcon}
+      {children}
+      {!isLoading && rightIcon}
+    </button>
+  );
+}
+```
+
+### Input Component
+
+```typescript
+// src/components/ui/Input.tsx
+
+export interface InputProps extends ComponentProps<'input'> {
+  label: string;
+  error?: string;
+  helperText?: string;
+  required?: boolean;
+  leftAddon?: React.ReactNode;
+  rightAddon?: React.ReactNode;
+}
+
+export function Input({
+  label,
+  error,
+  helperText,
+  required = false,
+  leftAddon,
+  rightAddon,
+  className,
+  id,
+  ...props
+}: InputProps) {
+  const inputId = id || `input-${label.toLowerCase().replace(/\s/g, '-')}`;
+  
+  return (
+    <div className="space-y-1.5">
+      {/* Label */}
+      <label
+        htmlFor={inputId}
+        className="block text-sm font-medium text-gray-700"
+      >
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      
+      {/* Input with addons */}
+      <div className="relative flex items-center">
+        {leftAddon && (
+          <div className="absolute left-3 text-gray-400">
+            {leftAddon}
+          </div>
+        )}
+        
+        <input
+          id={inputId}
+          className={cn(
+            // Base styles
+            "w-full px-3 py-2 rounded-md transition-colors",
+            "text-gray-900 placeholder-gray-400",
+            "border focus:outline-none focus:ring-2 focus:ring-offset-0",
+            
+            // Error state
+            error
+              ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500/20",
+            
+            // Disabled state
+            "disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500",
+            
+            // Addons padding
+            leftAddon && "pl-10",
+            rightAddon && "pr-10",
+            
+            className
+          )}
+          aria-invalid={error ? 'true' : 'false'}
+          aria-describedby={error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined}
+          {...props}
+        />
+        
+        {rightAddon && (
+          <div className="absolute right-3 text-gray-400">
+            {rightAddon}
+          </div>
+        )}
+      </div>
+      
+      {/* Error or helper text */}
+      {error && (
+        <p id={`${inputId}-error`} className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
+      {!error && helperText && (
+        <p id={`${inputId}-helper`} className="text-sm text-gray-500">
+          {helperText}
+        </p>
+      )}
+    </div>
+  );
+}
+```
+
+### Card Component
+
+```typescript
+// src/components/ui/Card.tsx
+
+export interface CardProps extends ComponentProps<'div'> {
+  variant?: 'default' | 'gradient';
+  gradient?: 'blue' | 'green' | 'purple' | 'pink';
+  padding?: 'sm' | 'md' | 'lg';
+  shadow?: 'sm' | 'md' | 'lg';
+}
+
+export function Card({
+  variant = 'default',
+  gradient = 'blue',
+  padding = 'md',
+  shadow = 'md',
+  className,
+  children,
+  ...props
+}: CardProps) {
+  const gradientStyles = {
+    blue: 'from-[#3B82F6] to-[#2563EB]',
+    green: 'from-[#10B981] to-[#059669]',
+    purple: 'from-[#A855F7] to-[#9333EA]',
+    pink: 'from-[#EC4899] to-[#DB2777]',
+  };
+  
+  return (
+    <div
+      className={cn(
+        "rounded-xl",
+        
+        // Variant styles
+        variant === 'default' && [
+          "bg-white border border-gray-200",
+        ],
+        variant === 'gradient' && [
+          `bg-gradient-to-br ${gradientStyles[gradient]}`,
+          "text-white",
+        ],
+        
+        // Padding
+        padding === 'sm' && "p-4",
+        padding === 'md' && "p-6",
+        padding === 'lg' && "p-8",
+        
+        // Shadow from Design.json
+        shadow === 'sm' && "shadow-[0_1px_3px_rgba(0,0,0,0.1)]",
+        shadow === 'md' && "shadow-[0_4px_12px_rgba(0,0,0,0.1)]",
+        shadow === 'lg' && "shadow-[0_8px_24px_rgba(0,0,0,0.12)]",
+        
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+### Modal Component
+
+```typescript
+// src/components/ui/Modal.tsx
+'use client';
+
+import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+
+export interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  children: React.ReactNode;
+}
+
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  size = 'md',
+  children,
+}: ModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
+  
+  if (!isOpen) return null;
+  
+  const sizeStyles = {
+    sm: 'max-w-md',
+    md: 'max-w-lg',
+    lg: 'max-w-2xl',
+    xl: 'max-w-4xl',
+  };
+  
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      
+      {/* Modal */}
+      <div
+        ref={modalRef}
+        className={cn(
+          "relative bg-white rounded-xl shadow-2xl",
+          "w-full max-h-[90vh] overflow-y-auto",
+          sizeStyles[size]
+        )}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? 'modal-title' : undefined}
+      >
+        {/* Header */}
+        {title && (
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <h2 id="modal-title" className="text-xl font-bold text-gray-900">
+              {title}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Close modal"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+        
+        {/* Content */}
+        <div className="p-6">
+          {children}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+```
+
+## Feature-Specific Components
+
+### Pool Card (Dashboard)
+
+```typescript
+// src/components/dashboard/PoolCard.tsx
+
+export interface PoolCardProps {
+  pool: UserPool;
+  gradient: 'blue' | 'green' | 'purple' | 'pink';
+  onEdit: () => void;
+  onDelete: () => void;
+  onExport: () => void;
+}
+
+export function PoolCard({
+  pool,
+  gradient,
+  onEdit,
+  onDelete,
+  onExport,
+}: PoolCardProps) {
+  return (
+    <Card variant="gradient" gradient={gradient} padding="md">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="text-xl font-bold text-white">{pool.poolName}</h3>
+          <p className="text-white/80 text-sm">
+            {pool.poolVolume.toLocaleString()} gallons • {pool.poolType}
+          </p>
+        </div>
+        
+        {/* Actions */}
+        <div className="flex gap-2">
+          <button
+            onClick={onEdit}
+            className="p-2 hover:bg-white/10 rounded-md transition-colors"
+            aria-label="Edit pool"
+          >
+            <EditIcon className="w-5 h-5" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-2 hover:bg-white/10 rounded-md transition-colors"
+            aria-label="Delete pool"
+          >
+            <TrashIcon className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+      
+      {/* Runtime Display */}
+      <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 mb-4">
+        <p className="text-white/90 text-sm mb-1">Recommended Runtime</p>
+        <p className="text-4xl font-bold text-white">
+          {pool.recommendedRuntime} <span className="text-2xl">hrs/day</span>
+        </p>
+        <p className="text-white/80 text-xs mt-1">
+          {pool.percentReduction}% reduction from current
+        </p>
+      </div>
+      
+      {/* Savings & Schedule */}
+      <div className="space-y-3">
+        <div className="flex justify-between items-center">
+          <span className="text-white/80 text-sm">Monthly Savings</span>
+          <span className="text-white font-semibold">
+            ${pool.monthlySavings.toFixed(2)}
+          </span>
+        </div>
+        
+        {/* Mini schedule preview */}
+        <div>
+          <p className="text-white/80 text-xs mb-2">Schedule</p>
+          <div className="flex gap-0.5">
+            {/* 24 blocks representing hours */}
+            {Array.from({ length: 24 }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "h-2 flex-1 rounded-sm",
+                  // Logic to determine if hour is ON or OFF
+                  "bg-white/30" // OFF
+                  // "bg-white" // ON
+                )}
+              />
+            ))}
+          </div>
+        </div>
+        
+        {/* Export button */}
+        <Button
+          onClick={onExport}
+          variant="secondary"
+          size="sm"
+          fullWidth
+          className="!bg-white/20 !border-white/40 !text-white hover:!bg-white/30"
+        >
+          <DownloadIcon className="w-4 h-4" />
+          Export Schedule
+        </Button>
+      </div>
+    </Card>
+  );
+}
+```
+
+### Stat Card (Dashboard)
+
+```typescript
+// src/components/dashboard/StatCard.tsx
+
+export interface StatCardProps {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+  iconBgColor: 'success' | 'info' | 'warning';
+  change?: {
+    value: number;
+    isPositive: boolean;
+  };
+}
+
+export function StatCard({
+  label,
+  value,
+  icon,
+  iconBgColor,
+  change,
+}: StatCardProps) {
+  const iconBgStyles = {
+    success: 'bg-green-100 text-green-600',
+    info: 'bg-blue-100 text-blue-600',
+    warning: 'bg-yellow-100 text-yellow-600',
+  };
+  
+  return (
+    <Card padding="md" shadow="sm">
+      <div className="flex items-start justify-between">
+        {/* Icon */}
+        <div className={cn(
+          "p-3 rounded-lg",
+          iconBgStyles[iconBgColor]
+        )}>
+          {icon}
+        </div>
+        
+        {/* Change indicator */}
+        {change && (
+          <div className={cn(
+            "text-xs font-semibold flex items-center gap-1",
+            change.isPositive ? "text-green-600" : "text-red-600"
+          )}>
+            {change.isPositive ? "↑" : "↓"}
+            {Math.abs(change.value)}%
+          </div>
+        )}
+      </div>
+      
+      {/* Label */}
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-4 mb-1">
+        {label}
+      </p>
+      
+      {/* Value */}
+      <p className="text-2xl font-bold text-gray-900">
+        {value}
+      </p>
+    </Card>
+  );
+}
+```
+
+## Responsive Design Patterns
+
+### Mobile-First Approach
+
+```typescript
+// Always start with mobile styles, add breakpoints for larger screens
+
+export function CalculatorLayout() {
+  return (
+    <div className={cn(
+      // Mobile: stacked layout
+      "flex flex-col gap-6",
+      
+      // Desktop: two-column split
+      "lg:flex-row lg:gap-8",
+      
+      // Form column (sticky on desktop)
+      "[&>form]:lg:sticky [&>form]:lg:top-24 [&>form]:lg:h-fit"
+    )}>
+      {/* Form */}
+      <form className="w-full lg:w-2/5">
+        {/* Form content */}
+      </form>
+      
+      {/* Results */}
+      <div className="w-full lg:w-3/5">
+        {/* Results content */}
+      </div>
+    </div>
+  );
+}
+```
+
+### Breakpoint Reference
+
+From Design.json:
+- Mobile: `< 640px` (default, no prefix)
+- Tablet: `640px - 1024px` (use `md:` prefix)
+- Desktop: `> 1024px` (use `lg:` prefix)
+
+```typescript
+// Grid examples
+className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+
+// Padding examples
+className="px-4 md:px-6 lg:px-8"
+
+// Text size examples
+className="text-base md:text-lg lg:text-xl"
+```
+
+## Accessibility Standards
+
+### Focus States
+
+```typescript
+// All interactive elements MUST have visible focus states
+className="focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+
+// For buttons on colored backgrounds
+className="focus:ring-white focus:ring-offset-blue-600"
+```
+
+### ARIA Labels
+
+```typescript
+// Always include ARIA labels for icon buttons
+<button aria-label="Close modal" onClick={onClose}>
+  <XIcon className="w-5 h-5" />
+</button>
+
+// Use aria-describedby for inputs with helper text
+<input
+  id="pool-length"
+  aria-describedby="pool-length-helper"
+/>
+<p id="pool-length-helper">Enter the length in feet</p>
+```
+
+### Semantic HTML
+
+```typescript
+// Use proper semantic elements
+<header> // Not <div className="header">
+<nav>    // Not <div className="navigation">
+<main>   // Not <div className="main-content">
+<article>
+<section>
+<aside>
+
+// Use proper heading hierarchy
+<h1> // Page title (only one per page)
+<h2> // Major sections
+<h3> // Subsections
+```
+
+## Animation & Transitions
+
+### Transition Standards
+
+From Design.json:
+- Fast: `transition-all duration-150` (hover states)
+- Normal: `transition-all duration-200` (most interactions)
+- Slow: `transition-all duration-300` (layout changes)
+
+```typescript
+// Button hover
+className="transition-all duration-200 hover:transform hover:-translate-y-0.5"
+
+// Modal enter/exit
+className="transition-all duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out"
+
+// Loading states
+className="animate-spin" // For spinners
+className="animate-pulse" // For skeletons
+```
+
+## Loading & Empty States
+
+### Loading Skeleton
+
+```typescript
+// src/components/shared/LoadingSkeleton.tsx
+
+export function LoadingSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "animate-pulse bg-gray-200 rounded",
+        className
+      )}
+      aria-label="Loading..."
+    />
+  );
+}
+
+// Usage
+<LoadingSkeleton className="h-8 w-48 mb-4" /> // Title
+<LoadingSkeleton className="h-4 w-full mb-2" /> // Text line
+<LoadingSkeleton className="h-4 w-3/4" /> // Text line
+```
+
+### Empty State
+
+```typescript
+// src/components/shared/EmptyState.tsx
+
+export interface EmptyStateProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+}
+
+export function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+}: EmptyStateProps) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+      {/* Icon */}
+      <div className="w-16 h-16 mb-4 text-gray-400">
+        {icon}
+      </div>
+      
+      {/* Title */}
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        {title}
+      </h3>
+      
+      {/* Description */}
+      <p className="text-sm text-gray-500 max-w-sm mb-6">
+        {description}
+      </p>
+      
+      {/* Action */}
+      {action && (
+        <Button onClick={action.onClick} variant="primary">
+          {action.label}
+        </Button>
+      )}
+    </div>
+  );
+}
+```
+
+## Common Patterns
+
+### Form Section
+
+```typescript
+export function FormSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        {description && (
+          <p className="text-sm text-gray-500 mt-1">{description}</p>
+        )}
+      </div>
+      <div className="space-y-4">
+        {children}
+      </div>
+    </div>
+  );
+}
+```
+
+### Action Bar
+
+```typescript
+export function ActionBar({
+  primaryAction,
+  secondaryAction,
+}: {
+  primaryAction: { label: string; onClick: () => void; isLoading?: boolean };
+  secondaryAction?: { label: string; onClick: () => void };
+}) {
+  return (
+    <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-200">
+      {secondaryAction && (
+        <Button
+          variant="ghost"
+          onClick={secondaryAction.onClick}
+        >
+          {secondaryAction.label}
+        </Button>
+      )}
+      <Button
+        variant="primary"
+        onClick={primaryAction.onClick}
+        isLoading={primaryAction.isLoading}
+      >
+        {primaryAction.label}
+      </Button>
+    </div>
+  );
+}
+```
+
+## Testing Components
+
+### Storybook Stories
+
+Every component should have a Storybook story:
+
+```typescript
+// src/components/ui/Button.stories.tsx
+
+import type { Meta, StoryObj } from '@storybook/react';
+import { Button } from './Button';
+
+const meta: Meta<typeof Button> = {
+  title: 'UI/Button',
+  component: Button,
+  tags: ['autodocs'],
+};
+
+export default meta;
+type Story = StoryObj<typeof Button>;
+
+export const Primary: Story = {
+  args: {
+    children: 'Calculate Savings',
+    variant: 'primary',
+  },
+};
+
+export const Secondary: Story = {
+  args: {
+    children: 'Cancel',
+    variant: 'secondary',
+  },
+};
+
+export const Loading: Story = {
+  args: {
+    children: 'Calculating...',
+    variant: 'primary',
+    isLoading: true,
+  },
+};
+```
+
+## Common Mistakes
+
+❌ **Don't:**
+```typescript
+// Using external libraries
+import { Button } from '@/components/ui/button';
+
+// Inline styles
+<div style={{ color: '#2563EB' }}>
+
+// Hardcoded colors
+<div className="bg-[#FF0000]">
+
+// Missing accessibility
+<button onClick={handleClick}>
+  <XIcon />
+</button>
+
+// Wrong gradient usage
+<nav className="bg-gradient-to-r from-blue-600 to-green-500">
+```
+
+✅ **Do:**
+```typescript
+// Custom components
+import { Button } from '@/components/ui/Button';
+
+// Tailwind classes
+<div className="text-blue-600">
+
+// Design.json colors
+<div className="bg-blue-600">
+
+// Proper accessibility
+<button
+  onClick={handleClick}
+  aria-label="Close"
+  className="focus:ring-2 focus:ring-blue-500"
+>
+  <XIcon />
+</button>
+
+// Correct gradient usage (only on hero, CTAs, pool cards)
+<button className="bg-gradient-to-r from-amber-500 to-amber-600">
+```
+
+Remember: Every component should be accessible, responsive, and follow Design.json exactly. Test on mobile, tablet, and desktop. Use Storybook for visual testing.

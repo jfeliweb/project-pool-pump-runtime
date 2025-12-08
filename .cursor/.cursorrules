@@ -1,0 +1,921 @@
+# Pool Pump Runtime Calculator - Cursor AI Rules
+
+## Project Context
+
+You are working on a Pool Pump Runtime Calculator - a sophisticated web application that helps US pool owners optimize their pool pump runtime schedules to save electricity costs. This is NOT a simple calculator; it's a production-grade optimization engine with comprehensive calculations accounting for 20+ variables including climate zones, pump specifications, usage patterns, and time-of-use electricity pricing.
+
+## Tech Stack
+
+- **Framework**: Next.js 16.0.3 (App Router)
+- **Language**: TypeScript 5.9.3
+- **UI**: React 19.2.0
+- **Styling**: Tailwind CSS 4.1.17 (NO component libraries like shadcn/ui)
+- **Database**: PGLite (local dev), PostgreSQL (production) via Drizzle ORM 0.44.7
+- **Auth**: Clerk (@clerk/nextjs 6.35.1)
+- **Forms**: React Hook Form 7.66.0 + Zod 4.1.12
+- **Charts**: Chart.js + react-chartjs-2
+- **Analytics**: PostHog (posthog-js)
+- **PDF Export**: jsPDF
+- **i18n**: next-intl 4.4.0
+
+## Critical Design System Rules
+
+### Must Always Reference Design.json
+
+Before implementing ANY component, consult `/Design.json` for:
+- Exact color values (gradients, semantic colors, neutrals)
+- Typography scale (hero, h1, h2, body, etc.)
+- Spacing system (xs through 4xl)
+- Component variants (buttons, cards, badges)
+- Shadow specifications
+- Border radius values
+- Hover states and transitions
+
+### Gradient Usage Rules (CRITICAL)
+
+**ONLY apply gradients to:**
+- Hero sections: `linear-gradient(135deg, #2563EB 0%, #10B981 100%)`
+- Primary CTA buttons: `linear-gradient(135deg, #F59E0B 0%, #D97706 100%)`
+- Pool cards: Rotating gradients (blue, green, purple, pink)
+- "Add New Pool" button: `linear-gradient(90deg, #2563EB 0%, #10B981 100%)`
+
+**NEVER apply gradients to:**
+- Navigation/header (should be white with border)
+- Text elements
+- Icons
+- Form inputs
+- Secondary buttons
+- Dashboard stat cards (use semantic colors instead)
+
+### Color Application Rules
+
+- **Navigation**: White background (#FFFFFF), gray text (#6B7280), blue hover (#2563EB)
+- **Pool Cards**: Gradient backgrounds with white text, `rgba(255, 255, 255, 0.2)` overlay for runtime display
+- **Buttons**: 
+  - Primary: Gradient background, BLACK text (#000000)
+  - Secondary: White background, blue border and text (#2563EB)
+  - Ghost: Transparent, gray text (#6B7280)
+- **Status Badges**: Use semantic colors from Design.json (success green, warning yellow, error red)
+
+## Code Architecture Rules
+
+### File Organization
+
+```
+/src
+├── app/                          # Next.js App Router
+│   ├── [locale]/
+│   │   ├── (marketing)/         # Public pages (landing, calculator, help)
+│   │   ├── (auth)/              # Protected pages (dashboard, settings)
+│   │   └── api/                 # API routes
+│   └── actions/                 # Server actions
+├── components/
+│   ├── ui/                      # Primitive components (Button, Input, Card, Modal)
+│   ├── calculator/              # Calculator-specific components
+│   ├── dashboard/               # Dashboard-specific components
+│   ├── charts/                  # Chart.js wrapper components
+│   ├── layout/                  # Layout components (Header, Footer, Nav)
+│   └── shared/                  # Shared utilities (Loading, Error)
+├── utils/
+│   ├── calculations/            # Calculation engine (9 modular files)
+│   ├── api/                     # API utilities
+│   ├── db/                      # Database operations
+│   ├── pdf/                     # PDF export utilities
+│   └── analytics.ts             # PostHog tracking functions
+├── models/
+│   └── Schema.ts                # Drizzle ORM schema
+├── validations/                 # Zod schemas
+├── libs/                        # 3rd party configs
+└── locales/                     # i18n translations
+```
+
+### Component Patterns
+
+#### Server Components (Default)
+
+Use Server Components by default for:
+- Pages that fetch data
+- Static content
+- SEO-optimized pages
+
+```typescript
+// src/app/[locale]/(auth)/dashboard/page.tsx
+import { auth } from '@clerk/nextjs';
+import { getUserPools } from '@/utils/db/pools';
+
+export default async function DashboardPage() {
+  const { userId } = auth();
+  if (!userId) return null;
+  
+  const pools = await getUserPools(userId);
+  
+  return <div>...</div>;
+}
+```
+
+#### Client Components (When Needed)
+
+Mark with `'use client'` ONLY for:
+- Interactive forms
+- State management (useState, useReducer)
+- Event handlers
+- Browser APIs (localStorage, window)
+- React Hook Form usage
+- Chart.js components
+
+```typescript
+'use client';
+
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+export function CalculatorForm() {
+  const form = useForm({
+    resolver: zodResolver(calculatorSchema),
+  });
+  
+  // ...
+}
+```
+
+### Calculation Engine Rules
+
+#### Modular Structure
+
+Always separate calculations into focused files:
+
+- `poolVolume.ts`: Volume calculations for 5 shapes
+- `pumpFlow.ts`: Flow rate with efficiency degradation
+- `turnoverRate.ts`: Required turnovers based on multiple factors
+- `runtime.ts`: Optimal runtime calculations
+- `schedule.ts`: Time block generation
+- `energyCosts.ts`: Cost calculations with TOU pricing
+- `savings.ts`: Savings analysis and ROI
+- `climateData.ts`: Climate zone lookup and caching
+- `recommendations.ts`: Personalized tips generation
+
+#### Calculation Function Pattern
+
+```typescript
+// All calculation functions should:
+// 1. Have clear input/output TypeScript interfaces
+// 2. Include JSDoc comments explaining logic
+// 3. Return properly typed results
+// 4. Handle edge cases gracefully
+
+/**
+ * Calculate pool volume in gallons based on shape and dimensions
+ * @param specs - Pool specifications including shape, dimensions, type
+ * @returns Volume in gallons (rounded to nearest whole number)
+ */
+export function calculatePoolVolume(specs: PoolSpecs): number {
+  const avgDepth = (specs.depth.shallow + specs.depth.deep) / 2;
+  
+  let volume: number;
+  
+  switch (specs.shape) {
+    case 'rectangular':
+      volume = specs.length * specs.width * avgDepth * 7.5;
+      break;
+    // ... other shapes
+  }
+  
+  return Math.round(volume);
+}
+```
+
+#### Always Account for These Factors
+
+Runtime calculations MUST consider:
+- Pool volume (5 different shapes)
+- Pump type (single-speed, two-speed, variable-speed)
+- Pump horsepower and age (efficiency degradation)
+- Climate zone and temperatures (from ZIP code)
+- Season (affects turnover requirements)
+- Usage level (light, moderate, heavy)
+- Number of swimmers
+- Landscaping (debris load)
+- Screen enclosure presence
+- Water features (waterfall, heater)
+- Water clarity
+- Time-of-use electricity pricing (if applicable)
+
+### Database Patterns
+
+#### Schema Conventions
+
+```typescript
+// Use Drizzle ORM with these conventions:
+// - Snake_case for database columns
+// - CamelCase for TypeScript properties via .mapWith()
+// - UUID primary keys
+// - Timestamps (createdAt, updatedAt)
+// - Proper decimal precision for money/measurements
+
+export const userPoolsTable = pgTable('user_pools', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: varchar('user_id', { length: 255 }).notNull(),
+  poolName: varchar('pool_name', { length: 100 }).default('My Pool').notNull(),
+  electricityRate: decimal('electricity_rate', { precision: 5, scale: 3 }).notNull(),
+  monthlySavings: decimal('monthly_savings', { precision: 8, scale: 2 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+```
+
+#### CRUD Operations Pattern
+
+```typescript
+// Always include userId in queries for security
+// Use transactions for multi-table operations
+// Return proper error messages
+
+export async function createPool(data: NewUserPool) {
+  try {
+    const [pool] = await db
+      .insert(userPoolsTable)
+      .values(data)
+      .returning();
+    
+    return { success: true, pool };
+  } catch (error) {
+    console.error('Failed to create pool:', error);
+    return { success: false, error: 'Failed to create pool configuration' };
+  }
+}
+
+export async function getPool(id: string, userId: string) {
+  const [pool] = await db
+    .select()
+    .from(userPoolsTable)
+    .where(
+      and(
+        eq(userPoolsTable.id, id),
+        eq(userPoolsTable.userId, userId) // Always filter by userId
+      )
+    );
+  
+  return pool;
+}
+```
+
+### Form Handling Patterns
+
+#### React Hook Form + Zod
+
+```typescript
+// Always use Zod for validation
+// Define schemas in /src/validations/
+// Use zodResolver
+// Implement proper error handling
+
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { calculatorSchema } from '@/validations/calculator';
+
+export function CalculatorForm() {
+  const form = useForm({
+    resolver: zodResolver(calculatorSchema),
+    defaultValues: {
+      poolSpecs: {
+        length: 30,
+        width: 15,
+        depth: { shallow: 4, deep: 8 },
+        shape: 'rectangular',
+        type: 'in-ground',
+      },
+    },
+  });
+  
+  const onSubmit = form.handleSubmit(async (data) => {
+    try {
+      const result = await calculatePoolOptimization(data);
+      setResults(result);
+    } catch (error) {
+      form.setError('root', {
+        message: 'Calculation failed. Please check your inputs.',
+      });
+    }
+  });
+  
+  return (
+    <form onSubmit={onSubmit}>
+      {/* Form fields */}
+    </form>
+  );
+}
+```
+
+#### Input Component Pattern
+
+```typescript
+// All form inputs should:
+// 1. Accept register prop from React Hook Form
+// 2. Show error state
+// 3. Include label and optional helper text
+// 4. Follow Design.json styling
+
+interface InputProps {
+  label: string;
+  error?: string;
+  helperText?: string;
+  required?: boolean;
+}
+
+export function Input({ label, error, helperText, required, ...props }: InputProps) {
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <input
+        className={cn(
+          "w-full px-3 py-2 border rounded-md",
+          error ? "border-red-500" : "border-gray-300",
+          "focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        )}
+        {...props}
+      />
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      {helperText && !error && <p className="text-sm text-gray-500">{helperText}</p>}
+    </div>
+  );
+}
+```
+
+### API Route Patterns
+
+#### RESTful Endpoints
+
+```typescript
+// src/app/api/pools/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs';
+
+export async function GET(request: NextRequest) {
+  try {
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const pools = await getUserPools(userId);
+    return NextResponse.json({ pools });
+  } catch (error) {
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const body = await request.json();
+    const validated = poolSchema.parse(body);
+    
+    const result = await createPool({ ...validated, userId });
+    
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    
+    return NextResponse.json({ pool: result.pool }, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: error.errors },
+        { status: 400 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Chart.js Integration
+
+#### Consistent Chart Styling
+
+```typescript
+// All Chart.js components should use Design.json colors
+// Base configuration in /src/utils/chartConfig.ts
+
+export const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      display: true,
+      position: 'bottom' as const,
+      labels: {
+        font: {
+          family: 'Inter',
+          size: 12,
+        },
+        color: '#6B7280', // gray-500
+      },
+    },
+  },
+  scales: {
+    x: {
+      grid: {
+        color: '#F3F4F6', // gray-100
+      },
+      ticks: {
+        color: '#9CA3AF', // gray-400
+      },
+    },
+    y: {
+      grid: {
+        color: '#F3F4F6', // gray-100
+      },
+      ticks: {
+        color: '#9CA3AF', // gray-400
+      },
+    },
+  },
+};
+
+// Schedule Timeline colors
+export const scheduleColors = {
+  on: '#2563EB',      // blue-600 - ON blocks
+  off: '#E5E7EB',     // gray-200 - OFF blocks
+  peak: '#EF4444',    // red-500 - Peak hours overlay
+  offPeak: '#10B981', // green-500 - Off-peak hours
+};
+
+// Usage/Savings chart colors
+export const chartColors = {
+  savings: '#10B981',     // green-500
+  current: '#EF4444',     // red-500
+  optimized: '#3B82F6',   // blue-500
+  gridLines: '#F3F4F6',   // gray-100
+};
+```
+
+### Analytics Tracking
+
+#### PostHog Event Naming
+
+```typescript
+// Use snake_case for event names
+// Include relevant properties
+// Track both success and failure events
+
+import posthog from 'posthog-js';
+
+// Calculator usage
+export function trackCalculatorUsed(data: {
+  poolVolume: number;
+  pumpType: string;
+  climateZone: string;
+  annualSavings: number;
+}) {
+  posthog.capture('calculator_used', {
+    pool_volume: data.poolVolume,
+    pump_type: data.pumpType,
+    climate_zone: data.climateZone,
+    annual_savings: data.annualSavings,
+  });
+}
+
+// Pool saved
+export function trackPoolSaved(poolId: string, monthlySavings: number) {
+  posthog.capture('pool_saved', {
+    pool_id: poolId,
+    monthly_savings: monthlySavings,
+  });
+}
+
+// Export events
+export function trackScheduleExported(format: 'pdf' | 'png' | 'csv') {
+  posthog.capture('schedule_exported', { format });
+}
+
+// Always identify users after auth
+export function identifyUser(userId: string, email: string) {
+  posthog.identify(userId, {
+    email,
+    signed_up_at: new Date().toISOString(),
+  });
+}
+```
+
+### Error Handling Standards
+
+#### User-Facing Errors
+
+```typescript
+// Use toast notifications for user-facing errors
+// Include helpful context
+// Never expose technical details to users
+
+export function showErrorToast(message: string) {
+  toast.error(message, {
+    description: 'Please try again or contact support if the issue persists.',
+    duration: 5000,
+  });
+}
+
+// Good error messages:
+// ✅ "Unable to save pool configuration. Please check your inputs."
+// ✅ "Climate data unavailable. Using state-level defaults."
+// ✅ "Export failed. Please try downloading again."
+
+// Bad error messages:
+// ❌ "Error: 500 Internal Server Error"
+// ❌ "Database connection failed"
+// ❌ "Unhandled exception in calculatePoolVolume"
+```
+
+#### Developer Errors
+
+```typescript
+// Log detailed errors for debugging
+// Include context and stack traces
+// Use console.error in development
+
+try {
+  const result = await calculatePoolOptimization(data);
+  return result;
+} catch (error) {
+  console.error('Calculation failed:', {
+    error,
+    input: data,
+    timestamp: new Date().toISOString(),
+  });
+  
+  throw new Error('Unable to calculate optimal runtime');
+}
+```
+
+### Internationalization (i18n)
+
+#### Translation Key Conventions
+
+```typescript
+// Use next-intl's useTranslations hook
+// Namespace keys by feature area
+// Use dot notation for nested keys
+
+import { useTranslations } from 'next-intl';
+
+export function CalculatorForm() {
+  const t = useTranslations('calculator');
+  
+  return (
+    <div>
+      <h1>{t('title')}</h1>
+      <p>{t('form.poolSpecs.label')}</p>
+      <button>{t('form.calculateButton')}</button>
+    </div>
+  );
+}
+
+// locales/en.json structure:
+{
+  "calculator": {
+    "title": "Pool Pump Runtime Calculator",
+    "form": {
+      "poolSpecs": {
+        "label": "Pool Specifications",
+        "lengthLabel": "Pool Length (feet)",
+        "widthLabel": "Pool Width (feet)"
+      },
+      "calculateButton": "Calculate Optimal Runtime"
+    }
+  }
+}
+```
+
+### Performance Optimization Rules
+
+#### Code Splitting
+
+```typescript
+// Lazy load heavy components
+import dynamic from 'next/dynamic';
+
+const ScheduleVisualization = dynamic(
+  () => import('@/components/calculator/ScheduleVisualization'),
+  { loading: () => <LoadingSkeleton /> }
+);
+
+const UsageHistoryChart = dynamic(
+  () => import('@/components/charts/UsageHistoryChart'),
+  { ssr: false } // Don't render on server
+);
+```
+
+#### Image Optimization
+
+```typescript
+// Always use next/image
+// Provide width and height
+// Use priority for above-fold images
+
+import Image from 'next/image';
+
+export function FeatureCard() {
+  return (
+    <Image
+      src="/images/pool-icon.svg"
+      alt="Pool optimization feature"
+      width={64}
+      height={64}
+      priority={false} // Only true for hero images
+    />
+  );
+}
+```
+
+### Accessibility Requirements
+
+#### WCAG 2.1 AA Compliance
+
+```typescript
+// All interactive elements must be keyboard accessible
+// Include proper ARIA labels
+// Maintain focus states
+// Ensure color contrast ratios
+
+export function Button({ children, ...props }: ButtonProps) {
+  return (
+    <button
+      className={cn(
+        "px-4 py-2 rounded-md",
+        "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+        "transition-colors duration-200"
+      )}
+      aria-label={props['aria-label']}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
+// Always include labels for form inputs
+<label htmlFor="pool-length" className="sr-only">
+  Pool Length
+</label>
+<input
+  id="pool-length"
+  type="number"
+  aria-describedby="pool-length-helper"
+  {...register('poolLength')}
+/>
+<span id="pool-length-helper" className="text-sm text-gray-500">
+  Enter the length of your pool in feet
+</span>
+```
+
+### Testing Patterns
+
+#### Unit Tests for Calculations
+
+```typescript
+// Test all calculation functions
+// Include edge cases
+// Test with real-world data
+
+import { describe, it, expect } from 'vitest';
+import { calculatePoolVolume } from '@/utils/calculations/poolVolume';
+
+describe('calculatePoolVolume', () => {
+  it('calculates rectangular pool volume correctly', () => {
+    const volume = calculatePoolVolume({
+      length: 30,
+      width: 15,
+      depth: { shallow: 4, deep: 8 },
+      shape: 'rectangular',
+      type: 'in-ground',
+    });
+    
+    expect(volume).toBe(13500); // 30 * 15 * 6 * 7.5
+  });
+  
+  it('handles round pools', () => {
+    const volume = calculatePoolVolume({
+      length: 20, // diameter
+      width: 20,
+      depth: { shallow: 5, deep: 5 },
+      shape: 'round',
+      type: 'above-ground',
+    });
+    
+    expect(volume).toBeGreaterThan(2350);
+    expect(volume).toBeLessThan(2360);
+  });
+  
+  it('throws error for invalid dimensions', () => {
+    expect(() => {
+      calculatePoolVolume({
+        length: -5,
+        width: 15,
+        depth: { shallow: 4, deep: 8 },
+        shape: 'rectangular',
+        type: 'in-ground',
+      });
+    }).toThrow();
+  });
+});
+```
+
+#### E2E Tests for Critical Flows
+
+```typescript
+// Test complete user journeys
+// Test both authenticated and guest flows
+
+import { test, expect } from '@playwright/test';
+
+test('guest can calculate and see results', async ({ page }) => {
+  await page.goto('/calculator');
+  
+  // Fill form
+  await page.fill('[name="poolLength"]', '30');
+  await page.fill('[name="poolWidth"]', '15');
+  await page.fill('[name="zipCode"]', '33101');
+  
+  // Submit
+  await page.click('button:has-text("Calculate Optimal Runtime")');
+  
+  // Verify results
+  await expect(page.locator('text=/\\d+\\.\\d+ hours\\/day/')).toBeVisible();
+  await expect(page.locator('text=/\\$\\d+/')).toBeVisible();
+  
+  // Guest cannot save
+  await page.click('button:has-text("Save This Schedule")');
+  await expect(page.locator('text=Sign Up Free')).toBeVisible();
+});
+```
+
+## Common Pitfalls to Avoid
+
+### ❌ Don't Do This
+
+```typescript
+// Don't use shadcn/ui or other component libraries
+import { Button } from '@/components/ui/button'; // ❌
+
+// Don't apply gradients to navigation
+<header className="bg-gradient-to-r from-blue-600 to-green-500"> // ❌
+
+// Don't expose calculation logic in components
+export function CalculatorForm() {
+  const calculateRuntime = () => {
+    // 100 lines of calculation logic here // ❌
+  };
+}
+
+// Don't skip userId validation in queries
+const pools = await db.select().from(userPoolsTable); // ❌ Missing userId filter
+
+// Don't hardcode values
+const electricityRate = 0.14; // ❌
+
+// Don't use inline styles
+<div style={{ color: '#2563EB' }}> // ❌
+```
+
+### ✅ Do This Instead
+
+```typescript
+// Build custom components with Tailwind
+export function Button({ children, variant = 'primary' }: ButtonProps) {
+  const baseClasses = "px-4 py-2 rounded-md font-semibold";
+  const variantClasses = variant === 'primary' 
+    ? "bg-gradient-to-r from-amber-500 to-amber-600 text-black"
+    : "bg-white border-2 border-blue-600 text-blue-600";
+  
+  return (
+    <button className={cn(baseClasses, variantClasses)}>
+      {children}
+    </button>
+  );
+}
+
+// White navigation, no gradients
+<header className="bg-white border-b border-gray-200"> // ✅
+
+// Separate calculation logic into utilities
+import { calculateOptimalRuntime } from '@/utils/calculations/runtime';
+
+export function CalculatorForm() {
+  const onSubmit = async (data) => {
+    const result = calculateOptimalRuntime(data); // ✅
+  };
+}
+
+// Always filter by userId
+const pools = await db
+  .select()
+  .from(userPoolsTable)
+  .where(eq(userPoolsTable.userId, userId)); // ✅
+
+// Use constants and user settings
+const electricityRate = settings.defaultElectricityRate ?? 0.14; // ✅
+
+// Use Tailwind classes
+<div className="text-blue-600"> // ✅
+```
+
+## Project-Specific Conventions
+
+### Naming Conventions
+
+- **Components**: PascalCase (e.g., `CalculatorForm.tsx`, `PoolCard.tsx`)
+- **Utilities**: camelCase files with exported functions (e.g., `poolVolume.ts`, `energyCosts.ts`)
+- **Database columns**: snake_case (e.g., `pool_name`, `electricity_rate`)
+- **TypeScript properties**: camelCase (e.g., `poolName`, `electricityRate`)
+- **Events**: snake_case (e.g., `calculator_used`, `pool_saved`)
+- **CSS classes**: Tailwind utilities only, no custom classes
+
+### Comments and Documentation
+
+```typescript
+// Add JSDoc comments for all exported functions
+/**
+ * Calculates the optimal pool pump runtime based on comprehensive factors
+ * 
+ * @param poolVolume - Pool volume in gallons
+ * @param flowRate - Pump flow rate in GPM
+ * @param requiredTurnovers - Number of turnovers needed per day
+ * @param pump - Pump specifications including type and settings
+ * @returns Optimal runtime in hours (rounded to nearest 0.5)
+ * 
+ * @example
+ * ```typescript
+ * const runtime = calculateOptimalRuntime(20000, 65, 2.5, {
+ *   type: 'variable-speed',
+ *   horsepower: 1.5,
+ *   ageYears: 3
+ * });
+ * // Returns: 7.5
+ * ```
+ */
+export function calculateOptimalRuntime(
+  poolVolume: number,
+  flowRate: number,
+  requiredTurnovers: number,
+  pump: PumpSpecs
+): number {
+  // Implementation
+}
+```
+
+### File Size Limits
+
+- Components: < 300 lines (split if larger)
+- Calculation utilities: < 200 lines per file
+- API routes: < 150 lines (extract logic to services)
+- Pages: < 200 lines (extract sections to components)
+
+## Quick Reference Commands
+
+```bash
+# Development
+npm run dev              # Start with PGLite
+npm run db:generate      # Create migrations after schema changes
+npm run db:studio        # Open Drizzle Studio
+
+# Testing
+npm run test             # Unit tests
+npm run test:e2e         # Playwright E2E tests
+npm run storybook        # Component library
+
+# Quality
+npm run lint             # ESLint
+npm run lint:fix         # Auto-fix issues
+npm run check:types      # TypeScript validation
+npm run check:i18n       # Translation completeness
+
+# Build
+npm run build            # Production build
+npm run start            # Start production server
+```
+
+## When in Doubt
+
+1. **Check Design.json first** for styling decisions
+2. **Reference the implementation plan** for architecture patterns
+3. **Look at existing components** for consistent patterns
+4. **Run tests** before committing
+5. **Test mobile responsiveness** for all new components
+6. **Verify accessibility** with keyboard navigation
+7. **Track key events** with PostHog analytics
+8. **Add i18n keys** to locales/en.json
+
+Remember: This is a production-grade optimization engine, not a simple calculator. The calculation logic must be comprehensive, accurate, and account for real-world variables. The UI must follow Design.json exactly, and all code must be maintainable, tested, and accessible.

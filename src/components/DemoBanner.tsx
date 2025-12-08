@@ -1,9 +1,9 @@
 import Link from 'next/link';
 
 export const DemoBanner = () => (
-  <div className="sticky top-0 z-50 bg-gray-900 p-4 text-center text-lg font-semibold text-gray-100 [&_a]:text-fuchsia-500 [&_a:hover]:text-indigo-500">
-    Live Demo of Next.js Boilerplate -
+  <div className="sticky top-0 z-50 bg-gradient-to-r from-blue-600 to-green-500 p-4 text-center text-lg font-semibold text-white [&_a]:text-yellow-300 [&_a:hover]:text-yellow-100">
+    💡 Save up to $400/year on pool pump electricity -
     {' '}
-    <Link href="/sign-up">Explore the Authentication</Link>
+    <Link href="/calculator">Try Our Free Calculator</Link>
   </div>
 );
