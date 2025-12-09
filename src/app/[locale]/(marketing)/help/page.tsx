@@ -135,7 +135,7 @@ export default function HelpPage() {
 
               {/* Card 2 - Email Support */}
               <Link
-                href="mailto:support@poolcalc.com"
+                href="mailto:support@poolpumpcalc.com"
                 className="group rounded-xl border border-green-100 bg-gradient-to-br from-green-50 to-emerald-50 p-6 transition-all hover:-translate-y-1 hover:shadow-lg"
               >
                 <div className="mb-4 flex size-12 items-center justify-center rounded-lg bg-gradient-to-r from-green-500 to-emerald-600">
