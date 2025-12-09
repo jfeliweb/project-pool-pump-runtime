@@ -1,6 +1,5 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import { setRequestLocale } from 'next-intl/server';
-import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { routing } from '@/libs/I18nRouting';
 import { ClerkLocalizations } from '@/utils/AppConfig';
 
@@ -36,9 +35,7 @@ export default async function AuthLayout(props: {
       signUpFallbackRedirectUrl={dashboardUrl}
       afterSignOutUrl={afterSignOutUrl}
     >
-      <SubscriptionProvider>
-        {props.children}
-      </SubscriptionProvider>
+      {props.children}
     </ClerkProvider>
   );
 }
