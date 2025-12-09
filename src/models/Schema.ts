@@ -135,8 +135,78 @@ export const userSettingsTable = pgTable('user_settings', {
     .notNull(),
 });
 
+// Users Table - Stores user data and subscription information
+export const usersTable = pgTable('users', {
+  id: serial('id').primaryKey(),
+  clerkUserId: varchar('clerk_user_id', { length: 255 }).notNull().unique(),
+  email: varchar('email', { length: 255 }).notNull(),
+
+  // Subscription fields
+  subscriptionStatus: varchar('subscription_status', { length: 20 }).default('free'),
+  subscriptionTier: varchar('subscription_tier', { length: 20 }).default('free'),
+  stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
+  stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }),
+  subscriptionStartDate: timestamp('subscription_start_date'),
+  subscriptionEndDate: timestamp('subscription_end_date'),
+  subscriptionCancelAtPeriodEnd: boolean('subscription_cancel_at_period_end').default(false),
+
+  // Metadata
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+// Subscriptions Table - Track subscription events and history
+export const subscriptionsTable = pgTable('subscriptions', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => usersTable.id),
+  stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }).unique(),
+  stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
+  stripePriceId: varchar('stripe_price_id', { length: 255 }),
+  planType: varchar('plan_type', { length: 20 }), // 'annual' or 'monthly'
+  status: varchar('status', { length: 20 }), // 'active', 'canceled', 'past_due'
+  currentPeriodStart: timestamp('current_period_start'),
+  currentPeriodEnd: timestamp('current_period_end'),
+  cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+// PDF Downloads Table - Track PDF downloads for analytics
+export const pdfDownloadsTable = pgTable('pdf_downloads', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => usersTable.id),
+  poolId: uuid('pool_id').references(() => userPoolsTable.id),
+  downloadedAt: timestamp('downloaded_at').defaultNow().notNull(),
+});
+
+// Affiliate Clicks Table - Track affiliate link clicks
+export const affiliateClicksTable = pgTable('affiliate_clicks', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => usersTable.id),
+  productId: varchar('product_id', { length: 100 }),
+  productName: varchar('product_name', { length: 255 }),
+  affiliateNetwork: varchar('affiliate_network', { length: 50 }), // 'amazon' or 'homedepot'
+  clickedAt: timestamp('clicked_at').defaultNow().notNull(),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: varchar('user_agent', { length: 500 }),
+});
+
 // Type exports
 export type UserPool = typeof userPoolsTable.$inferSelect;
 export type NewUserPool = typeof userPoolsTable.$inferInsert;
 export type UserSettings = typeof userSettingsTable.$inferSelect;
 export type NewUserSettings = typeof userSettingsTable.$inferInsert;
+export type User = typeof usersTable.$inferSelect;
+export type NewUser = typeof usersTable.$inferInsert;
+export type Subscription = typeof subscriptionsTable.$inferSelect;
+export type NewSubscription = typeof subscriptionsTable.$inferInsert;
+export type PdfDownload = typeof pdfDownloadsTable.$inferSelect;
+export type NewPdfDownload = typeof pdfDownloadsTable.$inferInsert;
+export type AffiliateClick = typeof affiliateClicksTable.$inferSelect;
+export type NewAffiliateClick = typeof affiliateClicksTable.$inferInsert;
