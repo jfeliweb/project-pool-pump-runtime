@@ -1,4 +1,5 @@
 import type { CalculationResult, EnergyCostData } from '@/types/calculator';
+import { exportCalculatorResultsPDF } from '@/utils/pdf/calculatorResultsExport';
 import { RecommendationsList } from './RecommendationsList';
 import { ROIAnalysisCard } from './ROIAnalysisCard';
 import { RuntimeMetricCard } from './RuntimeMetricCard';
@@ -12,6 +13,10 @@ export type ResultsDisplayProps = {
 };
 
 export function ResultsDisplay({ results, currentRuntime, energyData }: ResultsDisplayProps) {
+  const handleDownloadPDF = () => {
+    exportCalculatorResultsPDF(results, currentRuntime, energyData);
+  };
+
   return (
     <div className="space-y-6">
       {/* Hero Metric */}
@@ -48,6 +53,7 @@ export function ResultsDisplay({ results, currentRuntime, energyData }: ResultsD
         </button>
         <button
           type="button"
+          onClick={handleDownloadPDF}
           className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
         >
           Download PDF
