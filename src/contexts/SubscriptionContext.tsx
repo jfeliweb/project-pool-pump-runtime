@@ -60,9 +60,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <SubscriptionContext.Provider value={value}>
+    <SubscriptionContext value={value}>
       {children}
-    </SubscriptionContext.Provider>
+    </SubscriptionContext>
   );
 }
 
