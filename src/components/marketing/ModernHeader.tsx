@@ -67,58 +67,65 @@ export const ModernHeader = ({ currentPage }: ModernHeaderProps) => {
   return (
     <header className="sticky top-0 z-50 border-b border-blue-100 bg-white/80 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo Left */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-r from-blue-700 to-teal-600">
-              <Calculator className="size-4 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-900">PoolCalc</span>
-          </Link>
+        <div className="flex h-16 items-center">
+          {/* Left: Logo */}
+          <div className="flex-shrink-0">
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-r from-blue-700 to-teal-600">
+                <Calculator className="size-4 text-white" />
+              </div>
+              <span className="text-xl font-bold text-gray-900">PoolCalc</span>
+            </Link>
+          </div>
 
-          {/* Navigation Right */}
-          <nav className="hidden items-center space-x-8 md:flex">
-            <Link
-              href="/#how-it-works"
-              className={`transition-colors ${
-                currentPage === 'home'
-                  ? 'font-semibold text-blue-700'
-                  : 'text-gray-600 hover:text-blue-700'
-              }`}
-            >
-              How It Works
-            </Link>
-            <Link
-              href="/calculator"
-              className={`transition-colors ${
-                currentPage === 'calculator'
-                  ? 'font-semibold text-blue-700'
-                  : 'text-gray-600 hover:text-blue-700'
-              }`}
-            >
-              Calculator
-            </Link>
-            <Link
-              href="/help"
-              className={`transition-colors ${
-                currentPage === 'help'
-                  ? 'font-semibold text-blue-700'
-                  : 'text-gray-600 hover:text-blue-700'
-              }`}
-            >
-              Help
-            </Link>
-
-            {/* Show Pricing only for logged-out users */}
-            {isLoaded && !user && (
+          {/* Center: Navigation Links */}
+          <nav className="hidden flex-1 md:flex md:justify-center">
+            <div className="flex items-center space-x-8">
               <Link
-                href="/pricing"
-                className="text-gray-600 transition-colors hover:text-blue-700"
+                href="/#how-it-works"
+                className={`transition-colors ${
+                  currentPage === 'home'
+                    ? 'font-semibold text-blue-700'
+                    : 'text-gray-600 hover:text-blue-700'
+                }`}
               >
-                Pricing
+                How It Works
               </Link>
-            )}
+              <Link
+                href="/calculator"
+                className={`transition-colors ${
+                  currentPage === 'calculator'
+                    ? 'font-semibold text-blue-700'
+                    : 'text-gray-600 hover:text-blue-700'
+                }`}
+              >
+                Calculator
+              </Link>
+              <Link
+                href="/help"
+                className={`transition-colors ${
+                  currentPage === 'help'
+                    ? 'font-semibold text-blue-700'
+                    : 'text-gray-600 hover:text-blue-700'
+                }`}
+              >
+                Help
+              </Link>
 
+              {/* Show Pricing only for logged-out users */}
+              {isLoaded && !user && (
+                <Link
+                  href="/pricing"
+                  className="text-gray-600 transition-colors hover:text-blue-700"
+                >
+                  Pricing
+                </Link>
+              )}
+            </div>
+          </nav>
+
+          {/* Right: Auth Buttons / User Menu */}
+          <div className="hidden md:flex md:items-center md:space-x-4">
             {/* Logged-out: Sign In and Get Started buttons */}
             {isLoaded && !user && (
               <>
@@ -190,10 +197,10 @@ export const ModernHeader = ({ currentPage }: ModernHeaderProps) => {
                 )}
               </div>
             )}
-          </nav>
+          </div>
 
           {/* Mobile Menu Button */}
-          <button type="button" className="md:hidden" aria-label="Open menu">
+          <button type="button" className="ml-auto md:hidden" aria-label="Open menu">
             <Menu className="size-6 text-gray-600" />
           </button>
         </div>
