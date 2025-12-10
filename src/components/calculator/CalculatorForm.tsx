@@ -113,7 +113,7 @@ export function CalculatorForm() {
           <h2 className="mb-6 text-2xl font-bold text-gray-900">Pool Calculator</h2>
 
           <form onSubmit={onSubmit} className="space-y-6">
-            <PoolSpecsSection register={register} errors={errors} />
+            <PoolSpecsSection register={register} control={control} errors={errors} />
             <div className="border-t border-gray-200" />
 
             <PumpSpecsSection register={register} control={control} setValue={setValue} errors={errors} />

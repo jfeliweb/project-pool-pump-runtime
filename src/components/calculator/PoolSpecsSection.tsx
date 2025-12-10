@@ -1,16 +1,20 @@
 'use client';
 
-import type { UseFormRegister } from 'react-hook-form';
+import type { Control, UseFormRegister } from 'react-hook-form';
 import type { CalculatorInput } from '@/validations/calculator';
+import { useWatch } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 
 export type PoolSpecsSectionProps = {
   register: UseFormRegister<CalculatorInput>;
+  control: Control<CalculatorInput>;
   errors: any;
 };
 
-export function PoolSpecsSection({ register, errors }: PoolSpecsSectionProps) {
+export function PoolSpecsSection({ register, control, errors }: PoolSpecsSectionProps) {
+  const poolType = useWatch({ control, name: 'poolSpecs.type' });
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-gray-900">Pool Specifications</h3>
@@ -52,6 +56,7 @@ export function PoolSpecsSection({ register, errors }: PoolSpecsSectionProps) {
           step="0.1"
           {...register('poolSpecs.depth.shallow', { valueAsNumber: true })}
           error={errors.poolSpecs?.depth?.shallow?.message}
+          helperText={poolType === 'above-ground' ? 'Most above-ground pools have no shallow end (0 feet is allowed)' : undefined}
         />
         <Input
           label="Deep End (feet)"

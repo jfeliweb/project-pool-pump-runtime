@@ -4,13 +4,25 @@ export const poolSpecsSchema = z.object({
   length: z.number().min(10, 'Pool length must be at least 10 feet').max(100, 'Pool length cannot exceed 100 feet'),
   width: z.number().min(5, 'Pool width must be at least 5 feet').max(50, 'Pool width cannot exceed 50 feet'),
   depth: z.object({
-    shallow: z.number().min(2, 'Shallow end must be at least 2 feet').max(6, 'Shallow end cannot exceed 6 feet'),
+    shallow: z.number().min(0, 'Shallow end cannot be negative').max(6, 'Shallow end cannot exceed 6 feet'),
     deep: z.number().min(4, 'Deep end must be at least 4 feet').max(12, 'Deep end cannot exceed 12 feet'),
   }),
   shape: z.enum(['rectangular', 'kidney', 'freeform', 'oval', 'round']),
   type: z.enum(['in-ground', 'above-ground']),
   surfaceArea: z.number().optional(),
-});
+}).refine(
+  (data) => {
+    // In-ground pools must have shallow end >= 2 feet
+    if (data.type === 'in-ground' && data.depth.shallow < 2) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Shallow end must be at least 2 feet for in-ground pools',
+    path: ['depth', 'shallow'],
+  },
+);
 
 export const pumpSpecsSchema = z.object({
   type: z.enum(['single-speed', 'two-speed', 'variable-speed']),
