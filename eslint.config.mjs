@@ -39,6 +39,7 @@ export default antfu(
     settings: {
       tailwindcss: {
         config: `${dirname(fileURLToPath(import.meta.url))}/src/styles/global.css`,
+        whitelist: ['adsbygoogle'], // Google AdSense required class
       },
     },
   },
