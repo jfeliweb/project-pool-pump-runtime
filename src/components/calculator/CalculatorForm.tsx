@@ -5,6 +5,7 @@ import type { CalculatorInput } from '@/validations/calculator';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { HorizontalAd, RectangleAd } from '@/components/AdUnit';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/useToast';
 import { calculatePoolOptimization } from '@/utils/calculations';
@@ -133,6 +134,11 @@ export function CalculatorForm() {
               {isCalculating ? 'Calculating...' : 'Calculate Optimal Runtime'}
             </Button>
           </form>
+
+          {/* Sidebar Ad */}
+          <div className="mt-6">
+            <RectangleAd className="mx-auto" />
+          </div>
         </div>
       </div>
 
@@ -140,11 +146,18 @@ export function CalculatorForm() {
       <div id="results">
         {results
           ? (
-              <ResultsDisplay
-                results={results}
-                currentRuntime={watch('energyCostData.currentDailyRuntime')}
-                energyData={watch('energyCostData')}
-              />
+              <>
+                {/* Horizontal Ad Above Results */}
+                <div className="mb-6">
+                  <HorizontalAd />
+                </div>
+
+                <ResultsDisplay
+                  results={results}
+                  currentRuntime={watch('energyCostData.currentDailyRuntime')}
+                  energyData={watch('energyCostData')}
+                />
+              </>
             )
           : (
               <div className="flex h-full items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-12">
