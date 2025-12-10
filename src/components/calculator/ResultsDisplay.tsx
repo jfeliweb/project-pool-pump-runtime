@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { HorizontalAd, RectangleAd } from '@/components/AdUnit';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { exportCalculatorResultsPDF } from '@/utils/pdf/calculatorResultsExport';
+import { ProductRecommendations } from './ProductRecommendations';
 import { RecommendationsList } from './RecommendationsList';
 import { ROIAnalysisCard } from './ROIAnalysisCard';
 import { RuntimeMetricCard } from './RuntimeMetricCard';
@@ -91,6 +92,12 @@ export function ResultsDisplay({ results, currentRuntime, energyData }: ResultsD
           Download PDF
         </button>
       </div>
+
+      {/* Product Recommendations */}
+      <ProductRecommendations
+        poolVolume={results.poolVolume}
+        currentAnnualCost={results.costs.currentCosts.annualCost}
+      />
     </div>
   );
 }
