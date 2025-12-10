@@ -27,6 +27,11 @@ const isApiRoute = createRouteMatcher([
   '/:locale/api/subscription(.*)',
 ]);
 
+const isPricingRoute = createRouteMatcher([
+  '/pricing(.*)',
+  '/:locale/pricing(.*)',
+]);
+
 // Improve security with Arcjet
 const aj = arcjet.withRule(
   detectBot({
@@ -59,7 +64,7 @@ export default async function middleware(
 
   // Clerk keyless mode doesn't work with i18n, this is why we need to run the middleware conditionally
   if (
-    isAuthPage(request) || isProtectedRoute(request) || isApiRoute(request)
+    isAuthPage(request) || isProtectedRoute(request) || isApiRoute(request) || isPricingRoute(request)
   ) {
     return clerkMiddleware(async (auth, req) => {
       if (isProtectedRoute(req)) {
