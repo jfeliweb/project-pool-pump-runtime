@@ -34,7 +34,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     try {
       const response = await fetch('/api/subscription/status');
-      
+
       // Check if response is OK before parsing JSON
       if (!response.ok) {
         console.error('Subscription status API error:', response.status, response.statusText);
