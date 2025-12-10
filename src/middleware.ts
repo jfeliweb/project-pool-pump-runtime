@@ -67,6 +67,14 @@ export default async function middleware(
     isAuthPage(request) || isProtectedRoute(request) || isApiRoute(request) || isPricingRoute(request)
   ) {
     return clerkMiddleware(async (auth, req) => {
+      const { userId } = await auth();
+
+      // Redirect authenticated users from auth pages to dashboard
+      if (userId && isAuthPage(req)) {
+        const locale = req.nextUrl.pathname.match(/^(\/.{2})\//)?.[1] ?? '';
+        return NextResponse.redirect(new URL(`${locale}/dashboard`, req.url));
+      }
+
       if (isProtectedRoute(req)) {
         const locale = req.nextUrl.pathname.match(/(\/.*)\/dashboard/)?.at(1) ?? '';
 
