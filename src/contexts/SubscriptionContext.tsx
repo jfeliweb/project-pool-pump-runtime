@@ -21,6 +21,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchSubscription = useCallback(async () => {
+    // Don't fetch on server-side
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     if (!isLoaded || !user) {
       setStatus('free');
       setIsLoading(false);
@@ -29,6 +34,24 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     try {
       const response = await fetch('/api/subscription/status');
+      
+      // Check if response is OK before parsing JSON
+      if (!response.ok) {
+        console.error('Subscription status API error:', response.status, response.statusText);
+        setStatus('free');
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Subscription status API returned non-JSON response');
+        setStatus('free');
+        setIsLoading(false);
+        return;
+      }
+
       const data = await response.json();
 
       setStatus(data.isPremium ? 'premium' : 'free');

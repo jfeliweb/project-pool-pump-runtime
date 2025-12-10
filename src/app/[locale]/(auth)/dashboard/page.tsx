@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { getPoolStats, getUserPools } from '@/app/actions/pools.actions';
+import { AddPoolButton } from '@/components/dashboard/AddPoolButton';
 import { PoolGrid } from '@/components/dashboard/PoolGrid';
 import { StatCard } from '@/components/dashboard/StatCard';
 
@@ -90,15 +90,7 @@ export default async function DashboardPage() {
 
         {/* Add Pool Button */}
         <div className="mb-6">
-          <Link
-            href="/calculator"
-            className="inline-flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-green-500 px-6 py-4 text-base font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5"
-          >
-            <svg className="mr-2 size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add New Pool
-          </Link>
+          <AddPoolButton poolCount={pools.length} />
         </div>
 
         {/* Pool Grid */}

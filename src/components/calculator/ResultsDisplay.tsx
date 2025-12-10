@@ -1,4 +1,8 @@
+'use client';
+
 import type { CalculationResult, EnergyCostData } from '@/types/calculator';
+import { useRouter } from 'next/navigation';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { exportCalculatorResultsPDF } from '@/utils/pdf/calculatorResultsExport';
 import { RecommendationsList } from './RecommendationsList';
 import { ROIAnalysisCard } from './ROIAnalysisCard';
@@ -13,7 +17,14 @@ export type ResultsDisplayProps = {
 };
 
 export function ResultsDisplay({ results, currentRuntime, energyData }: ResultsDisplayProps) {
+  const { isPremium } = useSubscription();
+  const router = useRouter();
+
   const handleDownloadPDF = () => {
+    if (!isPremium) {
+      router.push('/pricing');
+      return;
+    }
     exportCalculatorResultsPDF(results, currentRuntime, energyData);
   };
 
@@ -54,8 +65,13 @@ export function ResultsDisplay({ results, currentRuntime, energyData }: ResultsD
         <button
           type="button"
           onClick={handleDownloadPDF}
-          className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+          className="relative rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
         >
+          {!isPremium && (
+            <span className="absolute -top-2 -right-2 rounded-full bg-yellow-400 px-2 py-1 text-xs font-bold text-black">
+              PRO
+            </span>
+          )}
           Download PDF
         </button>
       </div>
