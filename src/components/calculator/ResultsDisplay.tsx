@@ -2,6 +2,7 @@
 
 import type { CalculationResult, EnergyCostData } from '@/types/calculator';
 import { useRouter } from 'next/navigation';
+import { HorizontalAd, RectangleAd } from '@/components/AdUnit';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { exportCalculatorResultsPDF } from '@/utils/pdf/calculatorResultsExport';
 import { RecommendationsList } from './RecommendationsList';
@@ -37,22 +38,37 @@ export function ResultsDisplay({ results, currentRuntime, energyData }: ResultsD
         percentReduction={results.costs.savings.percentReduction}
       />
 
-      {/* Savings Breakdown */}
-      <SavingsBreakdownCard costs={results.costs} />
+      {/* Ad Placement 1: After hero metric */}
+      <HorizontalAd className="my-8" />
 
-      {/* Schedule Visualization */}
-      <ScheduleVisualization
-        schedule={results.schedule}
-        energyData={energyData}
-      />
+      {/* Main content grid */}
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* Left column: Main results */}
+        <div className="space-y-6 lg:col-span-2">
+          {/* Savings Breakdown */}
+          <SavingsBreakdownCard costs={results.costs} />
 
-      {/* ROI Analysis (if applicable) */}
-      {results.costs.roiMetrics && (
-        <ROIAnalysisCard costs={results.costs} />
-      )}
+          {/* Schedule Visualization */}
+          <ScheduleVisualization
+            schedule={results.schedule}
+            energyData={energyData}
+          />
 
-      {/* Recommendations */}
-      <RecommendationsList recommendations={results.recommendations} />
+          {/* ROI Analysis (if applicable) */}
+          {results.costs.roiMetrics && (
+            <ROIAnalysisCard costs={results.costs} />
+          )}
+        </div>
+
+        {/* Right sidebar: Ad and Recommendations */}
+        <div className="space-y-6 lg:sticky lg:top-4 lg:h-fit">
+          {/* Ad Placement 2: Sidebar */}
+          <RectangleAd />
+
+          {/* Recommendations */}
+          <RecommendationsList recommendations={results.recommendations} />
+        </div>
+      </div>
 
       {/* Action Buttons */}
       <div className="grid grid-cols-2 gap-4">
