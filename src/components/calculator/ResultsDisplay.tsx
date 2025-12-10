@@ -55,19 +55,19 @@ export function ResultsDisplay({ results, currentRuntime, energyData }: ResultsD
             energyData={energyData}
           />
 
+          {/* Recommendations */}
+          <RecommendationsList recommendations={results.recommendations} />
+
           {/* ROI Analysis (if applicable) */}
           {results.costs.roiMetrics && (
             <ROIAnalysisCard costs={results.costs} />
           )}
         </div>
 
-        {/* Right sidebar: Ad and Recommendations */}
+        {/* Right sidebar: Ad */}
         <div className="space-y-6 lg:sticky lg:top-4 lg:h-fit">
           {/* Ad Placement 2: Sidebar */}
           <RectangleAd />
-
-          {/* Recommendations */}
-          <RecommendationsList recommendations={results.recommendations} />
         </div>
       </div>
 
