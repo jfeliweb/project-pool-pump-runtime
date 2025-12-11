@@ -26,8 +26,7 @@ export const AddPoolButton = ({ poolCount }: AddPoolButtonProps) => {
       <button
         type="button"
         onClick={handleAddPool}
-        disabled={!canAddPool}
-        className="inline-flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-green-500 px-6 py-4 text-base font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+        className="inline-flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-green-500 px-6 py-4 text-base font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5"
       >
         {!canAddPool && (
           <svg className="mr-2 size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
