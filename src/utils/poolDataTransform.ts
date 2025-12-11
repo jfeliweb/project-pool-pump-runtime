@@ -10,9 +10,10 @@ import { getClimateDataForState } from '@/utils/calculations/climateData';
 export function transformCalculatorToPoolData(
   formData: CalculatorInput,
   results: CalculationResult,
+  poolName: string = 'My Pool',
 ): Omit<NewUserPool, 'userId'> {
   return {
-    poolName: 'My Pool', // Default name, user can change later
+    poolName, // Use provided name or default to "My Pool"
 
     // Pool specifications
     poolLength: formData.poolSpecs.length.toFixed(2),

@@ -16,6 +16,7 @@ import { ProductRecommendations } from './ProductRecommendations';
 import { RecommendationsList } from './RecommendationsList';
 import { ROIAnalysisCard } from './ROIAnalysisCard';
 import { RuntimeMetricCard } from './RuntimeMetricCard';
+import { SavePoolModal } from './SavePoolModal';
 import { SavingsBreakdownCard } from './SavingsBreakdownCard';
 import { ScheduleVisualization } from './ScheduleVisualization';
 
@@ -24,6 +25,28 @@ export type ResultsDisplayProps = {
   currentRuntime: number;
   energyData: EnergyCostData;
   formData: CalculatorInput;
+};
+
+/**
+ * Generates a unique default pool name based on existing pools
+ * Returns "My Pool", "My Pool 1", "My Pool 2", etc.
+ */
+const generateUniquePoolName = (existingPools: Array<{ poolName: string }>): string => {
+  const baseName = 'My Pool';
+  const existingNames = new Set(existingPools.map(pool => pool.poolName));
+
+  // Check if base name is available
+  if (!existingNames.has(baseName)) {
+    return baseName;
+  }
+
+  // Find the next available number
+  let counter = 1;
+  while (existingNames.has(`${baseName} ${counter}`)) {
+    counter++;
+  }
+
+  return `${baseName} ${counter}`;
 };
 
 /**
@@ -64,6 +87,8 @@ export function ResultsDisplay({ results, currentRuntime, energyData, formData }
   const [isSaving, setIsSaving] = useState(false);
   const [poolCount, setPoolCount] = useState<number>(0);
   const [isLoadingPoolCount, setIsLoadingPoolCount] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [defaultPoolName, setDefaultPoolName] = useState<string>('My Pool');
 
   // Fetch pool count when user is loaded
   useEffect(() => {
@@ -125,10 +150,25 @@ export function ResultsDisplay({ results, currentRuntime, energyData, formData }
       return;
     }
 
+    // Fetch existing pools to generate unique default name
+    try {
+      const existingPools = await getUserPools();
+      const uniqueName = generateUniquePoolName(existingPools);
+      setDefaultPoolName(uniqueName);
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching pools:', error);
+      // Use default name if fetch fails
+      setDefaultPoolName('My Pool');
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleSavePool = async (poolName: string) => {
     setIsSaving(true);
     try {
-      // Transform calculator data to pool data format
-      const poolData = transformCalculatorToPoolData(formData, results);
+      // Transform calculator data to pool data format with provided name
+      const poolData = transformCalculatorToPoolData(formData, results, poolName);
 
       // Save to database
       const savedPool = await createPool(poolData);
@@ -137,14 +177,16 @@ export function ResultsDisplay({ results, currentRuntime, energyData, formData }
         throw new Error('Failed to save pool - no data returned');
       }
 
-      const poolName = savedPool.poolName || 'My Pool';
       addToast({
         message: `Pool "${poolName}" saved successfully!`,
         type: 'success',
         duration: 5000,
       });
 
-      // Optionally redirect to dashboard after a short delay
+      // Close modal
+      setIsModalOpen(false);
+
+      // Redirect to dashboard after a short delay
       setTimeout(() => {
         const dashboardPath = locale === 'en' ? '/dashboard' : `/${locale}/dashboard`;
         router.push(dashboardPath);
@@ -157,9 +199,14 @@ export function ResultsDisplay({ results, currentRuntime, energyData, formData }
         type: 'error',
         duration: 5000,
       });
+      throw error; // Re-throw to let modal handle it
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
   };
 
   return (
@@ -236,6 +283,15 @@ export function ResultsDisplay({ results, currentRuntime, energyData, formData }
       <ProductRecommendations
         poolVolume={results.poolVolume}
         currentAnnualCost={results.costs.currentCosts.annualCost}
+      />
+
+      {/* Save Pool Modal */}
+      <SavePoolModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSavePool}
+        defaultName={defaultPoolName}
+        isSaving={isSaving}
       />
     </div>
   );
