@@ -142,7 +142,7 @@ export async function createPool(data: Omit<NewUserPool, 'userId'>) {
 export async function getUserPools() {
   const { userId } = await auth();
   if (!userId) {
-    throw new Error('Unauthorized');
+    return []; // Return empty array instead of throwing
   }
 
   const pools = await db
