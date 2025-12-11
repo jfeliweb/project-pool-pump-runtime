@@ -24,10 +24,18 @@ export default async function UserProfilePage(props: IUserProfilePageProps) {
   setRequestLocale(locale);
 
   return (
-    <div className="my-6 -ml-16">
-      <UserProfile
-        path={getI18nPath('/dashboard/user-profile', locale)}
-      />
+    <div className="bg-gray-50 py-8">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        <UserProfile
+          path={getI18nPath('/dashboard/user-profile', locale)}
+          appearance={{
+            elements: {
+              rootBox: 'w-full',
+              card: 'shadow-none',
+            },
+          }}
+        />
+      </div>
     </div>
   );
 };
