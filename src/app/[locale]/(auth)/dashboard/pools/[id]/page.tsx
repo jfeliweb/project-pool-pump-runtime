@@ -5,6 +5,7 @@ import { getPool } from '@/app/actions/pools.actions';
 import { HorizontalAd, RectangleAd } from '@/components/AdUnit';
 import { ScheduleTimeline } from '@/components/charts/ScheduleTimeline';
 import { EditPoolButton } from '@/components/dashboard/EditPoolButton';
+import { ExportReportButton } from '@/components/dashboard/ExportReportButton';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { Card } from '@/components/ui/Card';
 
@@ -78,9 +79,7 @@ export default async function PoolDetailPage({
                 </p>
               </div>
               <div className="flex gap-3">
-                <button type="button" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  Export Schedule
-                </button>
+                <ExportReportButton pool={pool} />
                 <EditPoolButton pool={pool} />
               </div>
             </div>
