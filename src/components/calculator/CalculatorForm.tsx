@@ -120,7 +120,7 @@ export function CalculatorForm() {
             <PumpSpecsSection register={register} control={control} setValue={setValue} errors={errors} />
             <div className="border-t border-gray-200" />
 
-            <LocationSection register={register} setValue={setValue} errors={errors} />
+            <LocationSection register={register} control={control} setValue={setValue} errors={errors} />
             <div className="border-t border-gray-200" />
 
             <UsageSection register={register} errors={errors} />

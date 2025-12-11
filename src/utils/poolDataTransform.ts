@@ -1,6 +1,7 @@
-import type { NewUserPool } from '@/models/Schema';
+import type { NewUserPool, UserPool } from '@/models/Schema';
 import type { CalculationResult } from '@/types/calculator';
 import type { CalculatorInput } from '@/validations/calculator';
+import { getClimateDataForState } from '@/utils/calculations/climateData';
 
 /**
  * Transforms CalculatorInput and CalculationResult into NewUserPool format
@@ -86,5 +87,79 @@ export function transformCalculatorToPoolData(
 
     // Metadata
     isPrimary: false,
+  };
+}
+
+/**
+ * Transforms UserPool data into CalculatorInput format
+ * for editing existing pools
+ */
+export function transformPoolToCalculatorInput(pool: UserPool): CalculatorInput {
+  // Get climate data for the pool's state
+  const climateData = getClimateDataForState(pool.state);
+
+  return {
+    poolSpecs: {
+      shape: pool.poolShape as any,
+      type: pool.poolType as any,
+      length: Number(pool.poolLength),
+      width: Number(pool.poolWidth),
+      depth: {
+        shallow: Number(pool.poolDepthShallow),
+        deep: Number(pool.poolDepthDeep),
+      },
+    },
+    pumpSpecs: {
+      type: pool.pumpType as any,
+      horsepower: Number(pool.pumpHorsepower) as any,
+      ageYears: pool.pumpAgeYears,
+      flowRateGPM: pool.pumpFlowRate ? Number(pool.pumpFlowRate) : undefined,
+      variableSpeedSettings:
+        pool.variableSpeedLowRPM
+          ? {
+              lowRPM: pool.variableSpeedLowRPM,
+              mediumRPM: pool.variableSpeedMediumRPM || 2400,
+              highRPM: pool.variableSpeedHighRPM || 3450,
+            }
+          : undefined,
+    },
+    locationData: {
+      zipCode: pool.zipCode,
+      state: pool.state,
+      city: pool.city || '',
+      climateZone: (pool.climateZone as any) || climateData.climateZone,
+      latitude: pool.latitude ? Number(pool.latitude) : 0,
+      longitude: pool.longitude ? Number(pool.longitude) : 0,
+      avgTemperatures: climateData.avgTemperatures,
+      avgSunlightHours: climateData.avgSunlightHours,
+    },
+    usageFactors: {
+      usageLevel: pool.usageLevel as any,
+      averageSwimmers: pool.averageSwimmers,
+      landscaping: pool.landscaping as any,
+      screenEnclosure: Boolean(pool.screenEnclosure),
+      hasWaterfall: Boolean(pool.hasWaterfall),
+      hasHeater: Boolean(pool.hasHeater),
+      hasSaltSystem: Boolean(pool.hasSaltSystem),
+      waterClarity: pool.waterClarity as any,
+    },
+    energyCostData: {
+      electricityRate: Number(pool.electricityRate),
+      hasTimeOfUsePricing: Boolean(pool.hasTimeOfUsePricing),
+      timeOfUseRates:
+        pool.hasTimeOfUsePricing && pool.touPeakRate
+          ? {
+              peakRate: Number(pool.touPeakRate),
+              offPeakRate: Number(pool.touOffPeakRate || pool.electricityRate),
+              peakHours: [
+                {
+                  start: pool.touPeakHoursStart || 14,
+                  end: pool.touPeakHoursEnd || 21,
+                },
+              ],
+            }
+          : undefined,
+      currentDailyRuntime: Number(pool.currentDailyRuntime),
+    },
   };
 }

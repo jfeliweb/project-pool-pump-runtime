@@ -1,20 +1,22 @@
 'use client';
 
-import type { UseFormRegister, UseFormSetValue } from 'react-hook-form';
+import type { Control, UseFormRegister, UseFormSetValue } from 'react-hook-form';
 import type { CalculatorInput } from '@/validations/calculator';
 import { useState } from 'react';
+import { useWatch } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
 
 export type LocationSectionProps = {
   register: UseFormRegister<CalculatorInput>;
+  control: Control<CalculatorInput>;
   setValue: UseFormSetValue<CalculatorInput>;
   errors: any;
 };
 
-export function LocationSection({ register, setValue, errors }: LocationSectionProps) {
+export function LocationSection({ register, control, setValue, errors }: LocationSectionProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [hasTOU, setHasTOU] = useState(false);
+  const hasTOU = useWatch({ control, name: 'energyCostData.hasTimeOfUsePricing' }) ?? false;
 
   const handleZipCodeLookup = async (zipCode: string) => {
     if (zipCode.length !== 5) {
@@ -75,7 +77,7 @@ export function LocationSection({ register, setValue, errors }: LocationSectionP
         label="I have time-of-use pricing"
         {...register('energyCostData.hasTimeOfUsePricing')}
         checked={hasTOU}
-        onChange={e => setHasTOU(e.target.checked)}
+        onChange={e => setValue('energyCostData.hasTimeOfUsePricing', e.target.checked)}
       />
 
       {hasTOU && (

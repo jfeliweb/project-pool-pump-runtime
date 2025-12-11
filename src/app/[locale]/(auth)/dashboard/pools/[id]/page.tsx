@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { getPool } from '@/app/actions/pools.actions';
 import { HorizontalAd, RectangleAd } from '@/components/AdUnit';
 import { ScheduleTimeline } from '@/components/charts/ScheduleTimeline';
+import { EditPoolButton } from '@/components/dashboard/EditPoolButton';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { Card } from '@/components/ui/Card';
 
@@ -80,9 +81,7 @@ export default async function PoolDetailPage({
                 <button type="button" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                   Export Schedule
                 </button>
-                <button type="button" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                  Edit Pool
-                </button>
+                <EditPoolButton pool={pool} />
               </div>
             </div>
 
