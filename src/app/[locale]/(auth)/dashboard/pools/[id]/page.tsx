@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { getPool } from '@/app/actions/pools.actions';
 import { HorizontalAd, RectangleAd } from '@/components/AdUnit';
 import { ScheduleTimeline } from '@/components/charts/ScheduleTimeline';
+import { DeletePoolButton } from '@/components/dashboard/DeletePoolButton';
 import { EditPoolButton } from '@/components/dashboard/EditPoolButton';
 import { ExportReportButton } from '@/components/dashboard/ExportReportButton';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -151,7 +152,7 @@ export default async function PoolDetailPage({
             )}
 
             {/* Pool Configuration */}
-            <Card>
+            <Card className="mb-8">
               <h2 className="mb-4 text-xl font-bold text-gray-900">Pool Configuration</h2>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
@@ -191,6 +192,19 @@ export default async function PoolDetailPage({
                   <p className="text-sm font-medium text-gray-600">Climate Zone</p>
                   <p className="mt-1 text-lg font-semibold text-gray-900 capitalize">{pool.climateZone}</p>
                 </div>
+              </div>
+            </Card>
+
+            {/* Delete Pool Section */}
+            <Card>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Danger Zone</h2>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Once you delete a pool, there is no going back. Please be certain.
+                  </p>
+                </div>
+                <DeletePoolButton pool={pool} />
               </div>
             </Card>
           </div>
