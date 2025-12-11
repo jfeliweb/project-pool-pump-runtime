@@ -1,10 +1,17 @@
 'use client';
 
 import type { CalculationResult, EnergyCostData } from '@/types/calculator';
+import type { CalculatorInput } from '@/validations/calculator';
+import { useUser } from '@clerk/nextjs';
+import { useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { createPool } from '@/app/actions/pools.actions';
 import { HorizontalAd, RectangleAd } from '@/components/AdUnit';
+import { useToast } from '@/components/ui/useToast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { exportCalculatorResultsPDF } from '@/utils/pdf/calculatorResultsExport';
+import { transformCalculatorToPoolData } from '@/utils/poolDataTransform';
 import { ProductRecommendations } from './ProductRecommendations';
 import { RecommendationsList } from './RecommendationsList';
 import { ROIAnalysisCard } from './ROIAnalysisCard';
@@ -16,11 +23,16 @@ export type ResultsDisplayProps = {
   results: CalculationResult;
   currentRuntime: number;
   energyData: EnergyCostData;
+  formData: CalculatorInput;
 };
 
-export function ResultsDisplay({ results, currentRuntime, energyData }: ResultsDisplayProps) {
+export function ResultsDisplay({ results, currentRuntime, energyData, formData }: ResultsDisplayProps) {
   const { isPremium } = useSubscription();
   const router = useRouter();
+  const locale = useLocale();
+  const { user, isLoaded } = useUser();
+  const { addToast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleDownloadPDF = () => {
     if (!isPremium) {
@@ -28,6 +40,60 @@ export function ResultsDisplay({ results, currentRuntime, energyData }: ResultsD
       return;
     }
     exportCalculatorResultsPDF(results, currentRuntime, energyData);
+  };
+
+  const handleSaveSchedule = async () => {
+    // Wait for auth to load
+    if (!isLoaded) {
+      return;
+    }
+
+    // Check if user is logged in
+    if (!user) {
+      addToast({
+        message: 'Please sign in to save your pool schedule',
+        type: 'info',
+        duration: 3000,
+      });
+      const signInPath = locale === 'en' ? '/sign-in' : `/${locale}/sign-in`;
+      router.push(signInPath);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Transform calculator data to pool data format
+      const poolData = transformCalculatorToPoolData(formData, results);
+
+      // Save to database
+      const savedPool = await createPool(poolData);
+
+      if (!savedPool) {
+        throw new Error('Failed to save pool - no data returned');
+      }
+
+      const poolName = savedPool.poolName || 'My Pool';
+      addToast({
+        message: `Pool "${poolName}" saved successfully!`,
+        type: 'success',
+        duration: 5000,
+      });
+
+      // Optionally redirect to dashboard after a short delay
+      setTimeout(() => {
+        const dashboardPath = locale === 'en' ? '/dashboard' : `/${locale}/dashboard`;
+        router.push(dashboardPath);
+      }, 1500);
+    } catch (error) {
+      console.error('Error saving pool:', error);
+      addToast({
+        message: error instanceof Error ? error.message : 'Failed to save pool. Please try again.',
+        type: 'error',
+        duration: 5000,
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -75,9 +141,11 @@ export function ResultsDisplay({ results, currentRuntime, energyData }: ResultsD
       <div className="grid grid-cols-2 gap-4">
         <button
           type="button"
-          className="rounded-lg border-2 border-blue-600 bg-white px-6 py-3 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-50"
+          onClick={handleSaveSchedule}
+          disabled={isSaving}
+          className="rounded-lg border-2 border-blue-600 bg-white px-6 py-3 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Save This Schedule
+          {isSaving ? 'Saving...' : 'Save This Pool'}
         </button>
         <button
           type="button"

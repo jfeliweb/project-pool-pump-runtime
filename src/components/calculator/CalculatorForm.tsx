@@ -25,6 +25,7 @@ export function CalculatorForm() {
     register,
     handleSubmit,
     watch,
+    getValues,
     setValue,
     control,
     formState: { errors },
@@ -156,6 +157,7 @@ export function CalculatorForm() {
                   results={results}
                   currentRuntime={watch('energyCostData.currentDailyRuntime')}
                   energyData={watch('energyCostData')}
+                  formData={getValues()}
                 />
               </>
             )
