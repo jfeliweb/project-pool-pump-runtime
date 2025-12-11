@@ -5,8 +5,8 @@ import type { CalculatorInput } from '@/validations/calculator';
 import { useUser } from '@clerk/nextjs';
 import { useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { createPool } from '@/app/actions/pools.actions';
+import { useEffect, useState } from 'react';
+import { createPool, getUserPools } from '@/app/actions/pools.actions';
 import { HorizontalAd, RectangleAd } from '@/components/AdUnit';
 import { useToast } from '@/components/ui/useToast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -62,6 +62,36 @@ export function ResultsDisplay({ results, currentRuntime, energyData, formData }
   const { user, isLoaded } = useUser();
   const { addToast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [poolCount, setPoolCount] = useState<number>(0);
+  const [isLoadingPoolCount, setIsLoadingPoolCount] = useState(true);
+
+  // Fetch pool count when user is loaded
+  useEffect(() => {
+    const fetchPoolCount = async () => {
+      if (!isLoaded) {
+        return;
+      }
+
+      if (!user) {
+        setPoolCount(0);
+        setIsLoadingPoolCount(false);
+        return;
+      }
+
+      try {
+        const pools = await getUserPools();
+        setPoolCount(pools.length);
+      } catch (error) {
+        console.error('Error fetching pool count:', error);
+        // Default to 0 on error to allow save attempt
+        setPoolCount(0);
+      } finally {
+        setIsLoadingPoolCount(false);
+      }
+    };
+
+    fetchPoolCount();
+  }, [isLoaded, user]);
 
   const handleDownloadPDF = () => {
     if (!isPremium) {
@@ -86,6 +116,12 @@ export function ResultsDisplay({ results, currentRuntime, energyData, formData }
       });
       const signInPath = locale === 'en' ? '/sign-in' : `/${locale}/sign-in`;
       router.push(signInPath);
+      return;
+    }
+
+    // Check if free user has reached pool limit
+    if (!isPremium && poolCount >= 1) {
+      router.push('/pricing');
       return;
     }
 
@@ -173,8 +209,13 @@ export function ResultsDisplay({ results, currentRuntime, energyData, formData }
           type="button"
           onClick={handleSaveSchedule}
           disabled={isSaving}
-          className="rounded-lg border-2 border-blue-600 bg-white px-6 py-3 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="relative rounded-lg border-2 border-blue-600 bg-white px-6 py-3 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
+          {!isPremium && !isLoadingPoolCount && poolCount >= 1 && (
+            <span className="absolute -top-2 -right-2 rounded-full bg-yellow-400 px-2 py-1 text-xs font-bold text-black">
+              PRO
+            </span>
+          )}
           {isSaving ? 'Saving...' : 'Save This Pool'}
         </button>
         <button
