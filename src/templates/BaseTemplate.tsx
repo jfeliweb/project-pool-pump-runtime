@@ -5,12 +5,14 @@ export const BaseTemplate = (props: {
   leftNav: React.ReactNode;
   rightNav?: React.ReactNode;
   children: React.ReactNode;
+  maxWidth?: string;
 }) => {
   const t = useTranslations('BaseTemplate');
+  const maxWidthClass = props.maxWidth ?? 'max-w-screen-md';
 
   return (
     <div className="w-full px-1 text-gray-700 antialiased">
-      <div className="mx-auto max-w-screen-md">
+      <div className={`mx-auto ${maxWidthClass}`}>
         <header className="border-b border-gray-300">
           <div className="pt-16 pb-8">
             <h1 className="text-3xl font-bold text-gray-900">
