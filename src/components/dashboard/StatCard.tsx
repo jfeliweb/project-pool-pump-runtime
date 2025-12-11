@@ -21,17 +21,19 @@ export function StatCard({
 }: StatCardProps) {
   return (
     <Card>
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex items-start gap-4">
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-medium tracking-wide text-gray-500 uppercase">
             {label}
           </p>
           <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
           {badge && (
-            <p className={`mt-2 text-xs font-semibold ${badgeColor}`}>{badge}</p>
+            <p className={`mt-2 text-xs font-semibold ${badgeColor}`}>
+              {badge}
+            </p>
           )}
         </div>
-        <div className={`rounded-lg ${iconBgColor} p-3`}>
+        <div className={`shrink-0 rounded-lg ${iconBgColor} p-3`}>
           <div className={iconColor}>{icon}</div>
         </div>
       </div>
