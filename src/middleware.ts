@@ -22,16 +22,6 @@ const isAuthPage = createRouteMatcher([
   '/:locale/sign-up(.*)',
 ]);
 
-const isApiRoute = createRouteMatcher([
-  '/api/subscription(.*)',
-  '/:locale/api/subscription(.*)',
-]);
-
-const isPricingRoute = createRouteMatcher([
-  '/pricing(.*)',
-  '/:locale/pricing(.*)',
-]);
-
 // Improve security with Arcjet
 const aj = arcjet.withRule(
   detectBot({
@@ -62,34 +52,30 @@ export default async function middleware(
     }
   }
 
-  // Clerk keyless mode doesn't work with i18n, this is why we need to run the middleware conditionally
-  if (
-    isAuthPage(request) || isProtectedRoute(request) || isApiRoute(request) || isPricingRoute(request)
-  ) {
-    return clerkMiddleware(async (auth, req) => {
-      const { userId } = await auth();
+  // Apply clerkMiddleware to all routes so server actions can use auth() from any route
+  // This ensures Clerk can detect the middleware even for public routes like /calculator
+  return clerkMiddleware(async (auth, req) => {
+    const { userId } = await auth();
 
-      // Redirect authenticated users from auth pages to dashboard
-      if (userId && isAuthPage(req)) {
-        const locale = req.nextUrl.pathname.match(/^(\/.{2})\//)?.[1] ?? '';
-        return NextResponse.redirect(new URL(`${locale}/dashboard`, req.url));
-      }
+    // Redirect authenticated users from auth pages to dashboard
+    if (userId && isAuthPage(req)) {
+      const locale = req.nextUrl.pathname.match(/^(\/.{2})\//)?.[1] ?? '';
+      return NextResponse.redirect(new URL(`${locale}/dashboard`, req.url));
+    }
 
-      if (isProtectedRoute(req)) {
-        const locale = req.nextUrl.pathname.match(/(\/.*)\/dashboard/)?.at(1) ?? '';
+    // Only protect specific routes - public routes remain accessible
+    if (isProtectedRoute(req)) {
+      const locale = req.nextUrl.pathname.match(/(\/.*)\/dashboard/)?.at(1) ?? '';
 
-        const signInUrl = new URL(`${locale}/sign-in`, req.url);
+      const signInUrl = new URL(`${locale}/sign-in`, req.url);
 
-        await auth.protect({
-          unauthenticatedUrl: signInUrl.toString(),
-        });
-      }
+      await auth.protect({
+        unauthenticatedUrl: signInUrl.toString(),
+      });
+    }
 
-      return handleI18nRouting(req);
-    })(request, event);
-  }
-
-  return handleI18nRouting(request);
+    return handleI18nRouting(req);
+  })(request, event);
 }
 
 export const config = {

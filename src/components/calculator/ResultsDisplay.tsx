@@ -26,6 +26,35 @@ export type ResultsDisplayProps = {
   formData: CalculatorInput;
 };
 
+/**
+ * Transforms technical error messages into user-friendly messages
+ */
+const getUserFriendlyErrorMessage = (error: unknown): string => {
+  if (!(error instanceof Error)) {
+    return 'Unable to save pool. Please try again.';
+  }
+
+  const errorMessage = error.message;
+
+  // Clerk middleware errors
+  if (errorMessage.includes('clerkMiddleware') || errorMessage.includes('Clerk: auth()')) {
+    return 'Please sign in to save your pool.';
+  }
+
+  // Unauthorized errors
+  if (errorMessage.includes('Unauthorized') || errorMessage.includes('unauthorized')) {
+    return 'Please sign in to save your pool.';
+  }
+
+  // Database or network errors
+  if (errorMessage.includes('Failed to save') || errorMessage.includes('no data returned')) {
+    return 'Unable to save pool. Please try again.';
+  }
+
+  // Generic fallback - return a simple message instead of technical details
+  return 'Unable to save pool. Please try again.';
+};
+
 export function ResultsDisplay({ results, currentRuntime, energyData, formData }: ResultsDisplayProps) {
   const { isPremium } = useSubscription();
   const router = useRouter();
@@ -86,8 +115,9 @@ export function ResultsDisplay({ results, currentRuntime, energyData, formData }
       }, 1500);
     } catch (error) {
       console.error('Error saving pool:', error);
+      const userFriendlyMessage = getUserFriendlyErrorMessage(error);
       addToast({
-        message: error instanceof Error ? error.message : 'Failed to save pool. Please try again.',
+        message: userFriendlyMessage,
         type: 'error',
         duration: 5000,
       });
