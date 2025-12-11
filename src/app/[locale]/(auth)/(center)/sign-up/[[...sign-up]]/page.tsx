@@ -28,9 +28,7 @@ export default async function SignUpPage(props: ISignUpPageProps) {
 
   // Determine fallback redirect URL
   // If redirect_url is provided, use it; otherwise default to dashboard
-  const fallbackRedirectUrl = redirect_url
-    ? redirect_url
-    : getI18nPath('/dashboard', locale);
+  const fallbackRedirectUrl = redirect_url || getI18nPath('/dashboard', locale);
 
   return (
     <SignUp
