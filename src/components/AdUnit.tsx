@@ -19,6 +19,7 @@ declare global {
 export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) => {
   const { isPremium, isLoading } = useSubscription();
   const adRef = useRef<HTMLDivElement>(null);
+  const insRef = useRef<HTMLModElement>(null);
   const adInitialized = useRef(false);
 
   useEffect(() => {
@@ -27,25 +28,100 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
       return;
     }
 
-    try {
-      // Load AdSense script if not already loaded
-      if (!document.querySelector('script[src*="adsbygoogle"]')) {
-        const script = document.createElement('script');
-        script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
-        script.async = true;
-        script.crossOrigin = 'anonymous';
-        script.setAttribute('data-ad-client', process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || '');
-        document.head.appendChild(script);
+    const initializeAd = () => {
+      // Check if ad is already initialized by checking if the ins element has been processed
+      if (!insRef.current || adInitialized.current) {
+        return;
       }
 
-      // Push ad
-      if (window.adsbygoogle && adRef.current) {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-        adInitialized.current = true;
+      // Check if the container has dimensions
+      const container = adRef.current;
+      if (!container) {
+        return;
       }
-    } catch (error) {
-      console.error('Ad loading error:', error);
-    }
+
+      const rect = container.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        // Container not ready, retry after a short delay
+        setTimeout(initializeAd, 100);
+        return;
+      }
+
+      // Check if this ins element already has an ad
+      const hasAd = insRef.current.hasAttribute('data-adsbygoogle-status');
+      if (hasAd) {
+        adInitialized.current = true;
+        return;
+      }
+
+      try {
+        // Ensure AdSense script is loaded
+        const loadScript = (): Promise<void> => {
+          return new Promise((resolve, reject) => {
+            // Check if script already exists
+            const existingScript = document.querySelector('script[src*="adsbygoogle"]');
+            if (existingScript) {
+              // Script exists, wait for it to load if needed
+              if (window.adsbygoogle) {
+                resolve();
+              } else {
+                // Wait for script to load
+                const checkInterval = setInterval(() => {
+                  if (window.adsbygoogle) {
+                    clearInterval(checkInterval);
+                    resolve();
+                  }
+                }, 50);
+                // Timeout after 5 seconds
+                setTimeout(() => {
+                  clearInterval(checkInterval);
+                  reject(new Error('AdSense script load timeout'));
+                }, 5000);
+              }
+              return;
+            }
+
+            // Create and load script
+            const script = document.createElement('script');
+            script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
+            script.async = true;
+            script.crossOrigin = 'anonymous';
+            script.setAttribute('data-ad-client', process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || '');
+
+            script.onload = () => {
+              resolve();
+            };
+            script.onerror = () => {
+              reject(new Error('Failed to load AdSense script'));
+            };
+
+            document.head.appendChild(script);
+          });
+        };
+
+        loadScript()
+          .then(() => {
+            // Double-check that the element hasn't been initialized
+            if (insRef.current && !insRef.current.hasAttribute('data-adsbygoogle-status')) {
+              if (window.adsbygoogle) {
+                (window.adsbygoogle = window.adsbygoogle || []).push({});
+                adInitialized.current = true;
+              }
+            }
+          })
+          .catch((error) => {
+            console.error('Ad loading error:', error);
+          });
+      } catch (error) {
+        console.error('Ad initialization error:', error);
+      }
+    };
+
+    // Use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      // Small delay to ensure container has dimensions
+      setTimeout(initializeAd, 50);
+    });
   }, [isPremium, isLoading]);
 
   // Don't render for premium users
@@ -57,6 +133,7 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
     <div ref={adRef} className={className}>
       <div className="mb-2 text-xs text-gray-400">Advertisement</div>
       <ins
+        ref={insRef}
         className="adsbygoogle" // Google AdSense required class
         style={{ display: 'block' }}
         data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID}
