@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 
 type AdUnitProps = {
@@ -21,12 +21,47 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
   const adRef = useRef<HTMLDivElement>(null);
   const insRef = useRef<HTMLModElement>(null);
   const adInitialized = useRef(false);
+  const [adLoaded, setAdLoaded] = useState(false);
+  const [shouldShow, setShouldShow] = useState(true);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Don't show ads for premium users or while loading
     if (isPremium || isLoading || adInitialized.current) {
       return;
     }
+
+    // Set timeout to hide ad if it doesn't load within 10 seconds
+    timeoutRef.current = setTimeout(() => {
+      if (!adLoaded) {
+        setShouldShow(false);
+      }
+    }, 10000);
+
+    // Monitor ad load status
+    const checkAdStatus = () => {
+      if (!insRef.current) {
+        return;
+      }
+
+      const status = insRef.current.getAttribute('data-adsbygoogle-status');
+      if (status === 'done') {
+        // Ad loaded successfully
+        setAdLoaded(true);
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+      } else if (status === 'error' || status === 'unfilled') {
+        // Ad failed to load or no ad available
+        setShouldShow(false);
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+      }
+    };
+
+    // Check ad status periodically
+    const statusInterval = setInterval(checkAdStatus, 500);
 
     const initializeAd = () => {
       // Check if ad is already initialized by checking if the ins element has been processed
@@ -51,6 +86,7 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
       const hasAd = insRef.current.hasAttribute('data-adsbygoogle-status');
       if (hasAd) {
         adInitialized.current = true;
+        checkAdStatus();
         return;
       }
 
@@ -111,9 +147,17 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
           })
           .catch((error) => {
             console.error('Ad loading error:', error);
+            setShouldShow(false);
+            if (timeoutRef.current) {
+              clearTimeout(timeoutRef.current);
+            }
           });
       } catch (error) {
         console.error('Ad initialization error:', error);
+        setShouldShow(false);
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
       }
     };
 
@@ -122,15 +166,37 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
       // Small delay to ensure container has dimensions
       setTimeout(initializeAd, 50);
     });
-  }, [isPremium, isLoading]);
 
-  // Don't render for premium users
-  if (isPremium || isLoading) {
+    // Cleanup
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      clearInterval(statusInterval);
+    };
+  }, [isPremium, isLoading, adLoaded]);
+
+  // Don't render for premium users or if ad shouldn't be shown
+  if (isPremium || isLoading || !shouldShow) {
     return null;
   }
 
+  // Get size constraints based on format
+  const getSizeClasses = () => {
+    switch (format) {
+      case 'rectangle':
+        return 'max-w-md max-h-[300px] overflow-hidden';
+      case 'horizontal':
+        return 'max-w-full max-h-[100px] overflow-hidden';
+      case 'vertical':
+        return 'max-w-[160px] max-h-[600px] overflow-hidden';
+      default:
+        return 'max-w-full overflow-hidden';
+    }
+  };
+
   return (
-    <div ref={adRef} className={className}>
+    <div ref={adRef} className={`${getSizeClasses()} ${className}`}>
       <div className="mb-2 text-xs text-gray-400">Advertisement</div>
       <ins
         ref={insRef}

@@ -137,8 +137,10 @@ export function CalculatorForm() {
           </form>
 
           {/* Sidebar Ad */}
-          <div className="mt-6">
-            <RectangleAd className="mx-auto" />
+          <div className="mt-6 flex justify-center">
+            <div className="w-full max-w-md">
+              <RectangleAd className="mx-auto" />
+            </div>
           </div>
         </div>
       </div>
