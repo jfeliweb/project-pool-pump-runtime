@@ -9,7 +9,7 @@ export const ModernFooter = () => {
           {/* Brand Column */}
           <div>
             <div className="mb-4 flex items-center space-x-2">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-r from-blue-700 to-teal-600">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-linear-to-r from-blue-700 to-teal-600">
                 <Calculator className="size-4 text-white" />
               </div>
               <span className="text-xl font-bold">PoolCalc</span>
@@ -68,17 +68,17 @@ export const ModernFooter = () => {
             <h4 className="mb-4 font-semibold">Company</h4>
             <ul className="space-y-2 text-gray-400">
               <li>
-                <Link href="/" className="transition-colors hover:text-white">
+                <Link href="/about" className="transition-colors hover:text-white">
                   About
                 </Link>
               </li>
               <li>
-                <Link href="/" className="transition-colors hover:text-white">
+                <Link href="/privacy" className="transition-colors hover:text-white">
                   Privacy
                 </Link>
               </li>
               <li>
-                <Link href="/" className="transition-colors hover:text-white">
+                <Link href="/terms" className="transition-colors hover:text-white">
                   Terms
                 </Link>
               </li>
