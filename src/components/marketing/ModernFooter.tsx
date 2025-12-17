@@ -95,7 +95,7 @@ export const ModernFooter = () => {
             PoolCalc. All rights reserved. Made in the USA
           </p>
         </div>
-        <div className="text-xs text-gray-500">
+        <div className="text-center text-xs text-gray-500">
           <p>
             Disclosure: We earn a commission from qualifying purchases made through
             affiliate links. This helps keep our calculator free. Prices are the same
