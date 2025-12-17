@@ -10,6 +10,7 @@ import { createPool, getUserPools } from '@/app/actions/pools.actions';
 import { HorizontalAd, RectangleAd } from '@/components/AdUnit';
 import { useToast } from '@/components/ui/useToast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { storeCalculation } from '@/utils/calculationStorage';
 import { exportCalculatorResultsPDF } from '@/utils/pdf/calculatorResultsExport';
 import { transformCalculatorToPoolData } from '@/utils/poolDataTransform';
 import { ProductRecommendations } from './ProductRecommendations';
@@ -120,6 +121,8 @@ export function ResultsDisplay({ results, currentRuntime, energyData, formData }
 
   const handleDownloadPDF = () => {
     if (!isPremium) {
+      // Store calculation data before redirecting to pricing
+      storeCalculation(formData, results, energyData, currentRuntime, 'download');
       router.push('/pricing');
       return;
     }
@@ -134,13 +137,19 @@ export function ResultsDisplay({ results, currentRuntime, energyData, formData }
 
     // Check if user is logged in
     if (!user) {
+      // Store calculation data before redirecting to sign-in
+      storeCalculation(formData, results, energyData, currentRuntime, 'save');
+
       addToast({
         message: 'Please sign in to save your pool schedule',
         type: 'info',
         duration: 3000,
       });
+
+      // Redirect to sign-in with return URL to dashboard
+      const dashboardPath = locale === 'en' ? '/dashboard' : `/${locale}/dashboard`;
       const signInPath = locale === 'en' ? '/sign-in' : `/${locale}/sign-in`;
-      router.push(signInPath);
+      router.push(`${signInPath}?redirect_url=${encodeURIComponent(dashboardPath)}`);
       return;
     }
 

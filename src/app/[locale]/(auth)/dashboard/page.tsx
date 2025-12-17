@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { getPoolStats, getUserPools } from '@/app/actions/pools.actions';
 import { HorizontalAd, RectangleAd } from '@/components/AdUnit';
 import { AddPoolButton } from '@/components/dashboard/AddPoolButton';
+import { CalculationRestoreHandler } from '@/components/dashboard/CalculationRestoreHandler';
 import { PaymentSuccessHandler } from '@/components/dashboard/PaymentSuccessHandler';
 import { PoolGrid } from '@/components/dashboard/PoolGrid';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -31,6 +32,7 @@ export default async function DashboardPage() {
     <div className="bg-gray-50 py-8">
       <Suspense fallback={null}>
         <PaymentSuccessHandler />
+        <CalculationRestoreHandler />
       </Suspense>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
