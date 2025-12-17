@@ -24,10 +24,30 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
   const [adLoaded, setAdLoaded] = useState(false);
   const [shouldShow, setShouldShow] = useState(true);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scriptLoadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Don't show ads for premium users or while loading
     if (isPremium || isLoading || adInitialized.current) {
+      // Clean up any pending timeouts when premium or loading
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
+      }
+      if (scriptLoadTimeoutRef.current) {
+        clearTimeout(scriptLoadTimeoutRef.current);
+        scriptLoadTimeoutRef.current = null;
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
       return;
     }
 
@@ -78,7 +98,7 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
       const rect = container.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) {
         // Container not ready, retry after a short delay
-        setTimeout(initializeAd, 100);
+        retryTimeoutRef.current = setTimeout(initializeAd, 100);
         return;
       }
 
@@ -105,12 +125,17 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
                 const checkInterval = setInterval(() => {
                   if (window.adsbygoogle) {
                     clearInterval(checkInterval);
+                    if (scriptLoadTimeoutRef.current) {
+                      clearTimeout(scriptLoadTimeoutRef.current);
+                      scriptLoadTimeoutRef.current = null;
+                    }
                     resolve();
                   }
                 }, 50);
                 // Timeout after 5 seconds
-                setTimeout(() => {
+                scriptLoadTimeoutRef.current = setTimeout(() => {
                   clearInterval(checkInterval);
+                  scriptLoadTimeoutRef.current = null;
                   reject(new Error('AdSense script load timeout'));
                 }, 5000);
               }
@@ -164,13 +189,22 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
     // Use requestAnimationFrame to ensure DOM is ready
     requestAnimationFrame(() => {
       // Small delay to ensure container has dimensions
-      setTimeout(initializeAd, 50);
+      initTimeoutRef.current = setTimeout(initializeAd, 50);
     });
 
     // Cleanup
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
+      if (scriptLoadTimeoutRef.current) {
+        clearTimeout(scriptLoadTimeoutRef.current);
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
       }
       clearInterval(statusInterval);
     };

@@ -47,7 +47,10 @@ export const AddPoolButton = ({ poolCount }: AddPoolButtonProps) => {
             )}
       </button>
 
-      {!isPremium && poolCount >= 1 && (
+      {(() => {
+        const showUpgradeMessage = !isPremium && poolCount >= 1;
+        return showUpgradeMessage;
+      })() && (
         <div className="rounded-lg border-2 border-yellow-200 bg-yellow-50 p-4">
           <p className="text-sm text-yellow-800">
             <strong>Free plan:</strong>

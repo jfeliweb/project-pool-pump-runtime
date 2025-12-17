@@ -11,6 +11,7 @@ type SubscriptionContextType = {
   isPremium: boolean;
   isLoading: boolean;
   refreshSubscription: () => Promise<void>;
+  setPremiumStatus: (isPremium: boolean) => void;
 };
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -33,11 +34,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const response = await fetch('/api/subscription/status');
+      const response = await fetch('/api/subscription/status', {
+        cache: 'no-store',
+      });
 
       // Check if response is OK before parsing JSON
       if (!response.ok) {
-        console.error('Subscription status API error:', response.status, response.statusText);
+        console.error('[SubscriptionContext] API error:', response.status, response.statusText);
         setStatus('free');
         setIsLoading(false);
         return;
@@ -46,7 +49,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       // Check if response is JSON
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        console.error('Subscription status API returned non-JSON response');
+        console.error('[SubscriptionContext] API returned non-JSON response');
         setStatus('free');
         setIsLoading(false);
         return;
@@ -54,9 +57,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
       const data = await response.json();
 
-      setStatus(data.isPremium ? 'premium' : 'free');
+      const newStatus = data.isPremium ? 'premium' : 'free';
+      setStatus(newStatus);
     } catch (error) {
-      console.error('Error fetching subscription:', error);
+      console.error('[SubscriptionContext] Error fetching subscription:', error);
       setStatus('free');
     } finally {
       setIsLoading(false);
@@ -72,15 +76,21 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     await fetchSubscription();
   }, [fetchSubscription]);
 
-  const value = useMemo(
-    () => ({
+  const setPremiumStatus = useCallback((isPremium: boolean) => {
+    setStatus(isPremium ? 'premium' : 'free');
+    setIsLoading(false);
+  }, []);
+
+  const value = useMemo(() => {
+    const isPremium = status === 'premium';
+    return {
       status,
-      isPremium: status === 'premium',
+      isPremium,
       isLoading,
       refreshSubscription,
-    }),
-    [status, isLoading, refreshSubscription],
-  );
+      setPremiumStatus,
+    };
+  }, [status, isLoading, refreshSubscription, setPremiumStatus]);
 
   return (
     <SubscriptionContext value={value}>

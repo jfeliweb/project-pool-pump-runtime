@@ -12,7 +12,12 @@ export async function GET() {
     if (!userId) {
       return NextResponse.json(
         { isPremium: false, status: 'free' },
-        { status: 200 },
+        {
+          status: 200,
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+          },
+        },
       );
     }
 
@@ -27,7 +32,12 @@ export async function GET() {
     if (!user) {
       return NextResponse.json(
         { isPremium: false, status: 'free' },
-        { status: 200 },
+        {
+          status: 200,
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+          },
+        },
       );
     }
 
@@ -47,27 +57,46 @@ export async function GET() {
           .where(eq(usersTable.id, user.id));
       }
 
-      return NextResponse.json({
-        isPremium: stripeActive,
-        status: stripeActive ? 'premium' : 'free',
+      return NextResponse.json(
+        {
+          isPremium: stripeActive,
+          status: stripeActive ? 'premium' : 'free',
+          subscriptionTier: user.subscriptionTier,
+          subscriptionEndDate: user.subscriptionEndDate,
+          cancelAtPeriodEnd: user.subscriptionCancelAtPeriodEnd,
+        },
+        {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+          },
+        },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        isPremium,
+        status: user.subscriptionStatus || 'free',
         subscriptionTier: user.subscriptionTier,
         subscriptionEndDate: user.subscriptionEndDate,
         cancelAtPeriodEnd: user.subscriptionCancelAtPeriodEnd,
-      });
-    }
-
-    return NextResponse.json({
-      isPremium,
-      status: user.subscriptionStatus || 'free',
-      subscriptionTier: user.subscriptionTier,
-      subscriptionEndDate: user.subscriptionEndDate,
-      cancelAtPeriodEnd: user.subscriptionCancelAtPeriodEnd,
-    });
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        },
+      },
+    );
   } catch (error) {
     console.error('Error checking subscription status:', error);
     return NextResponse.json(
       { error: 'Failed to check subscription status' },
-      { status: 500 },
+      {
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        },
+      },
     );
   }
 }
