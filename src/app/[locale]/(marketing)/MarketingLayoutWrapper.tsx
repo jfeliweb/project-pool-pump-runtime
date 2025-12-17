@@ -17,7 +17,7 @@ export const MarketingLayoutWrapper = ({
   const pathname = usePathname();
 
   // Pages with custom modern design (don't use BaseTemplate)
-  const modernPages = ['/', '/calculator', '/help', '/pricing'];
+  const modernPages = ['/', '/calculator', '/help', '/pricing', '/about'];
   const isModernPage = modernPages.some(
     page =>
       pathname === page

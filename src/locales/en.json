@@ -30,9 +30,14 @@
     "count": "Count: {count}"
   },
   "About": {
-    "meta_title": "About",
-    "meta_description": "About page description",
-    "about_paragraph": "Welcome to our About page! We are a team of passionate individuals dedicated to creating amazing software.",
+    "meta_title": "About PoolCalc - Helping Pool Owners Save Money on Electricity",
+    "meta_description": "Learn about PoolCalc's mission to help US pool owners optimize their pool pump schedules and save up to 60% on electricity costs. Free, climate-optimized pool pump calculator.",
+    "hero_title": "About PoolCalc",
+    "hero_subtitle": "Helping pool owners save money and energy, one calculation at a time",
+    "paragraph_1": "At PoolCalc, we believe that maintaining a beautiful pool shouldn't break the bank. That's why we created a free, comprehensive pool pump runtime calculator designed specifically for US pool owners. Our mission is simple: help you save money on electricity while keeping your pool crystal clear and properly maintained. We understand that pool ownership comes with ongoing costs, and we're here to make those costs more manageable through smart optimization.",
+    "paragraph_2": "The problem we solve is all too familiar to pool owners across America. Many people are running their pool pumps far longer than necessary, wasting hundreds of dollars each year on electricity bills. Traditional 'one-size-fits-all' recommendations don't account for your specific pool size, climate zone, pump type, or usage patterns. This means you could be over-filtering your pool during certain seasons or under-filtering during peak usage times, leading to either wasted energy or poor water quality.",
+    "paragraph_3": "Our solution combines advanced algorithms with real-world data to provide personalized recommendations that actually work. We've built a sophisticated calculation engine that considers over 25 variables including your pool's dimensions, pump specifications, local climate data, electricity rates, and usage patterns. Our climate-optimized approach means a pool owner in Arizona gets different recommendations than someone in Maine, because we account for temperature variations, humidity levels, and seasonal changes that affect pool maintenance needs. Whether you have a single-speed pump or a variable-speed model, our calculator adapts to your specific setup.",
+    "paragraph_4": "What sets PoolCalc apart is our commitment to making pool ownership more affordable and sustainable. We're completely free to use - no hidden fees, no email required, and no premium upsells. We're here because we genuinely want to help pool owners save money and reduce their environmental impact. Thousands of pool owners have already used our calculator to optimize their pump schedules, saving an average of $400 per year on electricity costs. Join our community of smart pool owners who are taking control of their energy usage and enjoying cleaner, more efficient pools.",
     "translation_powered_by": "Translation powered by"
   },
   "Portfolio": {
