@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import { Calculator, Check, Clock, DollarSign, MapPin, Rocket, Sun } from 'lucide-react';
 import Link from 'next/link';
-import { ModernFooter } from '@/components/marketing/ModernFooter';
-import { ModernHeader } from '@/components/marketing/ModernHeader';
 
 export const metadata: Metadata = {
   title: 'PoolCalc - Stop Wasting $400/Year on Pool Pump Electricity',
@@ -12,9 +10,7 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen">
-      <ModernHeader currentPage="home" />
-
+    <>
       {/* Hero Section */}
       <section className="relative flex min-h-[600px] items-center overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-teal-600">
         {/* Overlay */}
@@ -161,8 +157,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      <ModernFooter />
-    </div>
+    </>
   );
 }

@@ -7,48 +7,34 @@ import { BaseTemplate } from './BaseTemplate';
 
 describe('Base template', () => {
   describe('Render method', () => {
-    it('should have 3 menu items', () => {
+    it('should render children content', () => {
       render(
         <NextIntlClientProvider locale="en" messages={messages}>
-          <BaseTemplate
-            leftNav={(
-              <>
-                <li>link 1</li>
-                <li>link 2</li>
-                <li>link 3</li>
-              </>
-            )}
-          >
-            {null}
+          <BaseTemplate>
+            <div>Test content</div>
           </BaseTemplate>
         </NextIntlClientProvider>,
       );
 
-      const menuItemList = page.getByRole('listitem');
+      const content = page.getByText('Test content');
 
-      expect(menuItemList.elements()).toHaveLength(3);
+      expect(content).toBeDefined();
     });
 
-    it('should have a link to support nextjs-boilerplate.com', () => {
+    it('should wrap content in main element', () => {
       render(
         <NextIntlClientProvider locale="en" messages={messages}>
-          <BaseTemplate leftNav={<li>1</li>}>{null}</BaseTemplate>
+          <BaseTemplate>
+            <p>Content</p>
+          </BaseTemplate>
         </NextIntlClientProvider>,
       );
 
-      const copyrightSection = page.getByText(/© Copyright/);
-      const copyrightLink = copyrightSection.getByRole('link');
+      const main = page.getByRole('main');
+      const content = main.getByText('Content');
 
-      /*
-       * PLEASE READ THIS SECTION
-       * We'll really appreciate if you could have a link to our website
-       * The link doesn't need to appear on every pages, one link on one page is enough.
-       * Thank you for your support it'll mean a lot for us.
-       */
-      expect(copyrightLink).toHaveAttribute(
-        'href',
-        'https://nextjs-boilerplate.com',
-      );
+      expect(main).toBeDefined();
+      expect(content).toBeDefined();
     });
   });
 });

@@ -1,6 +1,4 @@
 import { setRequestLocale } from 'next-intl/server';
-import { ModernFooter } from '@/components/marketing/ModernFooter';
-import { ModernHeader } from '@/components/marketing/ModernHeader';
 
 export default async function DashboardLayout(props: {
   children: React.ReactNode;
@@ -9,11 +7,5 @@ export default async function DashboardLayout(props: {
   const { locale } = await props.params;
   setRequestLocale(locale);
 
-  return (
-    <div className="min-h-screen">
-      <ModernHeader />
-      {props.children}
-      <ModernFooter />
-    </div>
-  );
+  return <>{props.children}</>;
 }

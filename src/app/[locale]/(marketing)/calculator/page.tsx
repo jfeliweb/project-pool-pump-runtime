@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
 import { CalculatorForm } from '@/components/calculator/CalculatorForm';
-import { ModernFooter } from '@/components/marketing/ModernFooter';
-import { ModernHeader } from '@/components/marketing/ModernHeader';
 
 export const metadata: Metadata = {
   title: 'Pool Pump Runtime Calculator | PoolCalc',
@@ -10,9 +8,7 @@ export const metadata: Metadata = {
 
 export default function CalculatorPage() {
   return (
-    <div className="min-h-screen">
-      <ModernHeader currentPage="calculator" />
-
+    <>
       {/* Hero Section - Calculator Specific */}
       <section className="bg-gradient-to-r from-blue-600 to-teal-600 py-16">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -33,8 +29,6 @@ export default function CalculatorPage() {
           <CalculatorForm />
         </div>
       </section>
-
-      <ModernFooter />
-    </div>
+    </>
   );
 }

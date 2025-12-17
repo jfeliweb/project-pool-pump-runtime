@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import type { AccordionItem } from '@/components/ui/Accordion';
-import { BookOpen, Info, Link, Mail } from 'lucide-react';
-import { ModernFooter } from '@/components/marketing/ModernFooter';
-import { ModernHeader } from '@/components/marketing/ModernHeader';
+import { BookOpen, Info, Mail } from 'lucide-react';
+import Link from 'next/link';
 import { Accordion } from '@/components/ui/Accordion';
 
 export const metadata: Metadata = {
@@ -82,9 +81,7 @@ const faqItems: AccordionItem[] = [
 
 export default function HelpPage() {
   return (
-    <div className="min-h-screen">
-      <ModernHeader currentPage="help" />
-
+    <>
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-blue-600 to-teal-600 py-16">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -164,8 +161,6 @@ export default function HelpPage() {
           </div>
         </div>
       </section>
-
-      <ModernFooter />
-    </div>
+    </>
   );
 }

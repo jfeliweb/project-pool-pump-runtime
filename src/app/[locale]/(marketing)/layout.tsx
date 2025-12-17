@@ -1,7 +1,4 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import Link from 'next/link';
-import { DemoBanner } from '@/components/DemoBanner';
-import { LocaleSwitcher } from '@/components/LocaleSwitcher';
+import { setRequestLocale } from 'next-intl/server';
 import { BaseTemplate } from '@/templates/BaseTemplate';
 import { MarketingLayoutWrapper } from './MarketingLayoutWrapper';
 
@@ -11,78 +8,17 @@ export default async function Layout(props: {
 }) {
   const { locale } = await props.params;
   setRequestLocale(locale);
-  const t = await getTranslations({
-    locale,
-    namespace: 'RootLayout',
-  });
 
   return (
-    <>
-      <DemoBanner />
-      <MarketingLayoutWrapper
-        locale={locale}
-        baseTemplateContent={(
-          <BaseTemplate
-            leftNav={(
-              <>
-                <li>
-                  <Link
-                    href="/"
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    {t('home_link')}
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/calculator/"
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    {t('calculator_link')}
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/help/"
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    {t('help_link')}
-                  </Link>
-                </li>
-              </>
-            )}
-            rightNav={(
-              <>
-                <li>
-                  <Link
-                    href="/sign-in/"
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    {t('sign_in_link')}
-                  </Link>
-                </li>
-
-                <li>
-                  <Link
-                    href="/sign-up/"
-                    className="border-none text-gray-700 hover:text-gray-900"
-                  >
-                    {t('sign_up_link')}
-                  </Link>
-                </li>
-
-                <li>
-                  <LocaleSwitcher />
-                </li>
-              </>
-            )}
-          >
-            <div className="py-5 text-xl [&_p]:my-6">{props.children}</div>
-          </BaseTemplate>
-        )}
-      >
-        {props.children}
-      </MarketingLayoutWrapper>
-    </>
+    <MarketingLayoutWrapper
+      locale={locale}
+      baseTemplateContent={(
+        <BaseTemplate>
+          <div className="py-5 text-xl [&_p]:my-6">{props.children}</div>
+        </BaseTemplate>
+      )}
+    >
+      {props.children}
+    </MarketingLayoutWrapper>
   );
 }

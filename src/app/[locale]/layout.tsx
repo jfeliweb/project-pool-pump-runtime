@@ -4,6 +4,9 @@ import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { PostHogProvider } from '@/components/analytics/PostHogProvider';
+import { DemoBanner } from '@/components/DemoBanner';
+import { ModernFooter } from '@/components/marketing/ModernFooter';
+import { ModernHeader } from '@/components/marketing/ModernHeader';
 import { ToastProvider } from '@/components/ui/Toast';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { routing } from '@/libs/I18nRouting';
@@ -66,7 +69,12 @@ export default async function RootLayout(props: {
             <PostHogProvider>
               <SubscriptionProvider>
                 <ToastProvider>
-                  {props.children}
+                  <div className="min-h-screen">
+                    <DemoBanner />
+                    <ModernHeader />
+                    {props.children}
+                    <ModernFooter />
+                  </div>
                 </ToastProvider>
               </SubscriptionProvider>
             </PostHogProvider>
