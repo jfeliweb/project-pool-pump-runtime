@@ -34,7 +34,7 @@ export const ModernFooter = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/#pool-types" className="transition-colors hover:text-white">
+                <Link href="/pool-types" className="transition-colors hover:text-white">
                   Pool Types
                 </Link>
               </li>

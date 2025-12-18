@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { AccordionItem } from '@/components/ui/Accordion';
 import { Calculator, Check, Clock, DollarSign, MapPin, Zap } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
@@ -10,6 +11,7 @@ import { SavingsStats } from '@/components/marketing/SavingsStats';
 import { ScheduleTimeline } from '@/components/marketing/ScheduleTimeline';
 import { SeasonalCalendar } from '@/components/marketing/SeasonalCalendar';
 import { TestimonialCard } from '@/components/marketing/TestimonialCard';
+import { Accordion } from '@/components/ui/Accordion';
 
 type ISavingsGuideProps = {
   params: Promise<{ locale: string }>;
@@ -80,6 +82,39 @@ export default async function SavingsGuide(props: ISavingsGuideProps) {
       icon: <Clock className="size-8" />,
       value: t('hero_stat_runtime'),
       label: t('hero_stat_runtime_label'),
+    },
+  ];
+
+  const faqItems: AccordionItem[] = [
+    {
+      id: 'savings',
+      title: t('faq1_question'),
+      content: <p>{t('faq1_answer')}</p>,
+    },
+    {
+      id: 'water-quality',
+      title: t('faq2_question'),
+      content: <p>{t('faq2_answer')}</p>,
+    },
+    {
+      id: 'variable-speed',
+      title: t('faq3_question'),
+      content: <p>{t('faq3_answer')}</p>,
+    },
+    {
+      id: 'timeline',
+      title: t('faq4_question'),
+      content: <p>{t('faq4_answer')}</p>,
+    },
+    {
+      id: 'solar',
+      title: t('faq5_question'),
+      content: <p>{t('faq5_answer')}</p>,
+    },
+    {
+      id: 'rebates',
+      title: t('faq6_question'),
+      content: <p>{t('faq6_answer')}</p>,
     },
   ];
 
@@ -857,46 +892,11 @@ export default async function SavingsGuide(props: ISavingsGuideProps) {
 
           {/* Section 8: FAQ */}
           <section className="mb-16">
-            <h2 className="mb-12 text-4xl font-bold text-gray-900">
-              {t('section8_title')}
-            </h2>
-            <div className="space-y-6">
-              {[
-                {
-                  q: t('faq1_question'),
-                  a: t('faq1_answer'),
-                },
-                {
-                  q: t('faq2_question'),
-                  a: t('faq2_answer'),
-                },
-                {
-                  q: t('faq3_question'),
-                  a: t('faq3_answer'),
-                },
-                {
-                  q: t('faq4_question'),
-                  a: t('faq4_answer'),
-                },
-                {
-                  q: t('faq5_question'),
-                  a: t('faq5_answer'),
-                },
-                {
-                  q: t('faq6_question'),
-                  a: t('faq6_answer'),
-                },
-              ].map(faq => (
-                <div
-                  key={faq.q}
-                  className="rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
-                >
-                  <h3 className="mb-3 text-xl font-bold text-gray-900">
-                    {faq.q}
-                  </h3>
-                  <p className="text-gray-700">{faq.a}</p>
-                </div>
-              ))}
+            <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+              <h2 className="mb-6 text-3xl font-bold text-gray-900">
+                {t('section8_title')}
+              </h2>
+              <Accordion items={faqItems} />
             </div>
           </section>
         </div>
