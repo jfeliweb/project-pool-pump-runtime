@@ -12,7 +12,7 @@ export const ModernFooter = () => {
               <div className="flex size-8 items-center justify-center rounded-lg bg-linear-to-r from-blue-700 to-teal-600">
                 <Calculator className="size-4 text-white" />
               </div>
-              <span className="text-xl font-bold">PoolCalc</span>
+              <span className="text-xl font-bold">PoolPumpCalc</span>
             </div>
             <p className="text-gray-400">
               Helping US pool owners save money on electricity costs through smart pump optimization.
@@ -92,7 +92,7 @@ export const ModernFooter = () => {
             &copy;
             {new Date().getFullYear()}
             {' '}
-            PoolCalc. All rights reserved. Made in the USA
+            PoolPumpCalc. All rights reserved. Made in the USA
           </p>
         </div>
         <div className="text-center text-xs text-gray-500">

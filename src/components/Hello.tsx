@@ -10,7 +10,7 @@ export const Hello = async () => {
         {`👋 Hello, ${user?.primaryEmailAddress?.emailAddress ?? 'there'}!`}
       </p>
       <p className="mt-2 text-gray-600">
-        Welcome to PoolCalc. Manage your pool configurations and track your savings.
+        Welcome to PoolPumpCalc. Manage your pool configurations and track your savings.
       </p>
       <Sponsors />
     </div>

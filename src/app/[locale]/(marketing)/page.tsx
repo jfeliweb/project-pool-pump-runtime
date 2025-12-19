@@ -3,7 +3,7 @@ import { Calculator, Check, Clock, DollarSign, MapPin, Rocket, Sun } from 'lucid
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'PoolCalc - Stop Wasting $400/Year on Pool Pump Electricity',
+  title: 'PoolPumpCalc - Stop Wasting $400/Year on Pool Pump Electricity',
   description: 'Free pool pump runtime calculator for US pool owners. Get personalized schedule optimization and save up to 60% on electricity costs. Climate-optimized for all 50 states.',
   keywords: ['pool pump calculator', 'pool pump runtime', 'save electricity', 'variable speed pump', 'pool pump schedule'],
 };

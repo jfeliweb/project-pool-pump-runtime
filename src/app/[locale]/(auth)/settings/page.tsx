@@ -3,7 +3,7 @@ import { UserProfile } from '@clerk/nextjs';
 import { Card } from '@/components/ui/Card';
 
 export const metadata: Metadata = {
-  title: 'Settings | PoolCalc',
+  title: 'Settings | PoolPumpCalc',
   description: 'Manage your account settings and preferences',
 };
 

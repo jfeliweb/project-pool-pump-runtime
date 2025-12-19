@@ -5,7 +5,7 @@ import { enUS, frFR } from '@clerk/localizations';
 const localePrefix: LocalePrefixMode = 'as-needed';
 
 export const AppConfig = {
-  name: 'PoolCalc',
+  name: 'PoolPumpCalc',
   locales: ['en', 'fr'],
   defaultLocale: 'en',
   localePrefix,

@@ -1,7 +1,7 @@
 {
   "designSystem": {
     "metadata": {
-      "projectName": "PoolCalc - Pool Pump Runtime Calculator",
+      "projectName": "PoolPumpCalc - Pool Pump Runtime Calculator",
       "designLanguage": "Modern SaaS with gradient accents",
       "primaryPurpose": "Calculator tool with dashboard management",
       "targetFramework": "Next.js 14 with Tailwind CSS + shadcn/ui"

@@ -139,7 +139,7 @@ export default async function SavingsGuide(props: ISavingsGuideProps) {
               {
                 '@type': 'HowToStep',
                 'name': 'Calculate current costs',
-                'text': 'Use PoolCalc to assess your current pump electricity consumption',
+                'text': 'Use PoolPumpCalc to assess your current pump electricity consumption',
               },
               {
                 '@type': 'HowToStep',

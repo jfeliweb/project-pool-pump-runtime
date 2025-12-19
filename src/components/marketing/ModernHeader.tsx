@@ -74,7 +74,7 @@ export const ModernHeader = ({ currentPage }: ModernHeaderProps) => {
               <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-r from-blue-700 to-teal-600">
                 <Calculator className="size-4 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">PoolCalc</span>
+              <span className="text-xl font-bold text-gray-900">PoolPumpCalc</span>
             </Link>
           </div>
 

@@ -11,7 +11,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { Card } from '@/components/ui/Card';
 
 export const metadata: Metadata = {
-  title: 'Pool Details | PoolCalc',
+  title: 'Pool Details | PoolPumpCalc',
 };
 
 export default async function PoolDetailPage({

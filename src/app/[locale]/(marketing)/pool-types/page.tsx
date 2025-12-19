@@ -47,8 +47,8 @@ export async function generateMetadata(
     openGraph: {
       title: t('meta_title'),
       description: t('meta_description'),
-      url: 'https://poolcalc.com/pool-types',
-      siteName: 'PoolCalc',
+      url: 'https://poolpumpcalc.com/pool-types',
+      siteName: 'PoolPumpCalc',
       locale,
       type: 'website',
     },
@@ -58,7 +58,7 @@ export async function generateMetadata(
       description: t('meta_description'),
     },
     alternates: {
-      canonical: 'https://poolcalc.com/pool-types',
+      canonical: 'https://poolpumpcalc.com/pool-types',
     },
   };
 }
@@ -145,7 +145,7 @@ export default async function PoolTypes(props: IPoolTypesProps) {
             '@type': 'WebPage',
             'name': 'Pool Types Guide',
             'description': 'Compare different pool types and calculate optimal pump runtime for energy savings.',
-            'url': 'https://poolcalc.com/pool-types',
+            'url': 'https://poolpumpcalc.com/pool-types',
             'mainEntity': {
               '@type': 'FAQPage',
               'mainEntity': [
@@ -198,13 +198,13 @@ export default async function PoolTypes(props: IPoolTypesProps) {
                   '@type': 'ListItem',
                   'position': 1,
                   'name': 'Home',
-                  'item': 'https://poolcalc.com',
+                  'item': 'https://poolpumpcalc.com',
                 },
                 {
                   '@type': 'ListItem',
                   'position': 2,
                   'name': 'Pool Types',
-                  'item': 'https://poolcalc.com/pool-types',
+                  'item': 'https://poolpumpcalc.com/pool-types',
                 },
               ],
             },

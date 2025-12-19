@@ -9,7 +9,7 @@ import { PoolGrid } from '@/components/dashboard/PoolGrid';
 import { StatCard } from '@/components/dashboard/StatCard';
 
 export const metadata: Metadata = {
-  title: 'Dashboard | PoolCalc',
+  title: 'Dashboard | PoolPumpCalc',
   description: 'Manage your pool configurations and track your savings',
 };
 

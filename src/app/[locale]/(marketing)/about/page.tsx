@@ -82,7 +82,7 @@ export default async function About(props: IAboutProps) {
                 <div className="relative">
                   <Image
                     src="/about-hero.png"
-                    alt="Pool pump and pool illustration representing PoolCalc's mission"
+                    alt="Pool pump and pool illustration representing PoolPumpCalc's mission"
                     width={600}
                     height={400}
                     className="rounded-xl shadow-2xl"
@@ -143,7 +143,7 @@ export default async function About(props: IAboutProps) {
             <div className="overflow-hidden rounded-xl shadow-lg">
               <Image
                 src="/about-climate.png"
-                alt="Climate optimization map showing how PoolCalc adapts to different US climate zones"
+                alt="Climate optimization map showing how PoolPumpCalc adapts to different US climate zones"
                 width={800}
                 height={500}
                 className="w-full"

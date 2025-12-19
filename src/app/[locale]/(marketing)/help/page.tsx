@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Accordion } from '@/components/ui/Accordion';
 
 export const metadata: Metadata = {
-  title: 'Help Center | PoolCalc',
+  title: 'Help Center | PoolPumpCalc',
   description: 'Get help with the pool pump calculator and learn how to optimize your pool pump runtime',
 };
 
@@ -132,7 +132,7 @@ export default function HelpPage() {
 
               {/* Card 2 - Email Support */}
               <Link
-                href="mailto:support@poolpumpcalc.com"
+                href="mailto:info@poolpumpcalc.com"
                 className="group rounded-xl border border-green-100 bg-gradient-to-br from-green-50 to-emerald-50 p-6 transition-all hover:-translate-y-1 hover:shadow-lg"
               >
                 <div className="mb-4 flex size-12 items-center justify-center rounded-lg bg-gradient-to-r from-green-500 to-emerald-600">
@@ -152,7 +152,7 @@ export default function HelpPage() {
                 <div className="mb-4 flex size-12 items-center justify-center rounded-lg bg-gradient-to-r from-purple-500 to-indigo-600">
                   <Info className="size-6 text-white" />
                 </div>
-                <h3 className="font-bold text-gray-900">About PoolCalc</h3>
+                <h3 className="font-bold text-gray-900">About PoolPumpCalc</h3>
                 <p className="mt-2 text-sm text-gray-600">
                   Learn how it works
                 </p>

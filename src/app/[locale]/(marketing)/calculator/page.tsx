@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { CalculatorForm } from '@/components/calculator/CalculatorForm';
 
 export const metadata: Metadata = {
-  title: 'Pool Pump Runtime Calculator | PoolCalc',
+  title: 'Pool Pump Runtime Calculator | PoolPumpCalc',
   description: 'Calculate optimal pool pump runtime and save money on electricity. Get personalized schedule optimization based on your pool size, pump type, and location.',
 };
 
