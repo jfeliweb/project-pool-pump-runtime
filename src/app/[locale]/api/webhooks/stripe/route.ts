@@ -1,5 +1,7 @@
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { NextRequest } from 'next/server';
 import type Stripe from 'stripe';
+import type * as schema from '@/models/Schema';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
@@ -65,12 +67,12 @@ export async function POST(req: NextRequest) {
       }
 
       default:
-        console.warn(`Unhandled event type: ${event.type}`);
+        console.warn(`[webhook] Unhandled event type: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Webhook handler error:', error);
+    console.error('[webhook] Webhook handler error:', error);
     return NextResponse.json(
       { error: 'Webhook handler failed' },
       { status: 500 },
@@ -78,7 +80,114 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function handleSubscriptionUpdate(db: any, subscription: Stripe.Subscription) {
+/**
+ * Finds or creates a user from a Stripe customer ID.
+ * Tries multiple lookup strategies:
+ * 1. Find by stripeCustomerId
+ * 2. Find by clerkUserId from customer metadata
+ * 3. Create new user if not found
+ */
+async function findOrCreateUserFromStripeCustomer(
+  db: NodePgDatabase<typeof schema>,
+  customerId: string,
+): Promise<typeof usersTable.$inferSelect | null> {
+  // First, try to find user by Stripe customer ID
+  let [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.stripeCustomerId, customerId))
+    .limit(1);
+
+  if (user) {
+    return user;
+  }
+
+  // If not found, retrieve Stripe customer to get metadata
+  let customer: Stripe.Customer | Stripe.DeletedCustomer;
+  try {
+    customer = await stripe.customers.retrieve(customerId);
+    if (typeof customer === 'string' || customer.deleted) {
+      console.error('[webhook] Customer not found or deleted:', customerId);
+      return null;
+    }
+  } catch (error) {
+    console.error('[webhook] Error retrieving Stripe customer:', customerId, error);
+    return null;
+  }
+
+  // At this point, customer is confirmed to be a Customer (not DeletedCustomer)
+  // TypeScript needs explicit narrowing
+  if (customer.deleted) {
+    console.error('[webhook] Customer is deleted:', customerId);
+    return null;
+  }
+
+  // Get clerkId from customer metadata
+  const clerkId = customer.metadata?.clerkId;
+  if (!clerkId) {
+    console.warn('[webhook] No clerkId in customer metadata for:', customerId);
+    // Still try to create user with email if available
+    if (customer.email) {
+      try {
+        const [newUser] = await db
+          .insert(usersTable)
+          .values({
+            clerkUserId: `stripe_${customerId}`, // Fallback ID if no clerkId
+            email: customer.email,
+            stripeCustomerId: customerId,
+          })
+          .returning();
+        console.warn('[webhook] Created user without clerkId for customer:', customerId);
+        return newUser ?? null;
+      } catch (error) {
+        console.error('[webhook] Error creating user without clerkId:', error);
+        return null;
+      }
+    }
+    return null;
+  }
+
+  // Try to find user by clerkUserId
+  [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.clerkUserId, clerkId))
+    .limit(1);
+
+  if (user) {
+    // Update user with stripeCustomerId if not set
+    if (!user.stripeCustomerId) {
+      await db
+        .update(usersTable)
+        .set({ stripeCustomerId: customerId })
+        .where(eq(usersTable.id, user.id));
+      user.stripeCustomerId = customerId;
+    }
+    return user;
+  }
+
+  // User doesn't exist, create it
+  try {
+    const [newUser] = await db
+      .insert(usersTable)
+      .values({
+        clerkUserId: clerkId,
+        email: customer.email || '',
+        stripeCustomerId: customerId,
+      })
+      .returning();
+    console.warn('[webhook] Created new user from Stripe customer:', customerId, 'clerkId:', clerkId);
+    return newUser ?? null;
+  } catch (error) {
+    console.error('[webhook] Error creating user from Stripe customer:', error);
+    return null;
+  }
+}
+
+async function handleSubscriptionUpdate(
+  db: NodePgDatabase<typeof schema>,
+  subscription: Stripe.Subscription,
+) {
   const customerId = subscription.customer as string;
   const metadata = subscription.metadata;
 
@@ -87,15 +196,11 @@ async function handleSubscriptionUpdate(db: any, subscription: Stripe.Subscripti
   const currentPeriodEnd = (subscription as any).current_period_end;
   const cancelAtPeriodEnd = (subscription as any).cancel_at_period_end;
 
-  // Find user by Stripe customer ID
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.stripeCustomerId, customerId))
-    .limit(1);
+  // Find or create user from Stripe customer
+  const user = await findOrCreateUserFromStripeCustomer(db, customerId);
 
   if (!user) {
-    console.error('User not found for customer:', customerId);
+    console.error('[webhook] Could not find or create user for customer:', customerId);
     return;
   }
 
@@ -138,19 +243,20 @@ async function handleSubscriptionUpdate(db: any, subscription: Stripe.Subscripti
       },
     });
 
-  console.warn(`Subscription updated for user ${user.id}: ${subscription.status}`);
+  console.warn(`[webhook] Subscription updated for user ${user.id}: ${subscription.status}`);
 }
 
-async function handleSubscriptionCanceled(db: any, subscription: Stripe.Subscription) {
+async function handleSubscriptionCanceled(
+  db: NodePgDatabase<typeof schema>,
+  subscription: Stripe.Subscription,
+) {
   const customerId = subscription.customer as string;
 
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.stripeCustomerId, customerId))
-    .limit(1);
+  // Find or create user from Stripe customer
+  const user = await findOrCreateUserFromStripeCustomer(db, customerId);
 
   if (!user) {
+    console.error('[webhook] Could not find or create user for canceled subscription customer:', customerId);
     return;
   }
 
@@ -170,7 +276,7 @@ async function handleSubscriptionCanceled(db: any, subscription: Stripe.Subscrip
     })
     .where(eq(subscriptionsTable.stripeSubscriptionId, subscription.id));
 
-  console.warn(`Subscription canceled for user ${user.id}`);
+  console.warn(`[webhook] Subscription canceled for user ${user.id}`);
 }
 
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
