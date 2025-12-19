@@ -36,6 +36,9 @@ export const metadata: Metadata = {
       url: '/favicon.ico',
     },
   ],
+  other: {
+    'google-adsense-account': 'ca-pub-8267749867360051',
+  },
 };
 
 export function generateStaticParams() {
