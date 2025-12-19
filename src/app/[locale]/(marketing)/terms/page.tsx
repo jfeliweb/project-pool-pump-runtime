@@ -56,7 +56,7 @@ export default function TermsOfService() {
 
       <h2>9. Contact Information</h2>
       <p>
-        If you have any questions about these Terms, please contact us at support@poolpumpcalculator.com.
+        If you have any questions about these Terms, please contact us at info@poolpumpcalc.com.
       </p>
     </div>
   );

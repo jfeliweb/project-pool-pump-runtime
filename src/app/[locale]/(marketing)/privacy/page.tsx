@@ -101,7 +101,7 @@ export default function PrivacyPolicy() {
 
       <h2>Contact Us</h2>
       <p>If you have any questions about this Privacy Policy, please contact us:</p>
-      <p>Email: privacy@poolpumpcalculator.com</p>
+      <p>Email: info@poolpumpcalc.com</p>
     </div>
   );
 }
