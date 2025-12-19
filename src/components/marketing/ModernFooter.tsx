@@ -51,9 +51,9 @@ export const ModernFooter = () => {
                 </Link>
               </li>
               <li>
-                <a href="#contact" className="transition-colors hover:text-white">
+                <Link href="/contact" className="transition-colors hover:text-white">
                   Contact Us
-                </a>
+                </Link>
               </li>
               <li>
                 <Link href="/help" className="transition-colors hover:text-white">

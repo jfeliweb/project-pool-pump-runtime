@@ -530,5 +530,20 @@
     "feature6": "Variable-speed pump ROI analysis",
     "final_cta_button": "Calculate My Pool's Optimal Runtime →",
     "trust_badges": "100% Free • No Email Required • Instant Results"
+  },
+  "Contact": {
+    "meta_title": "Contact Us | PoolPumpCalc",
+    "meta_description": "Get in touch with PoolPumpCalc. Email us or reach out on social media.",
+    "hero_title": "Contact Us",
+    "hero_subtitle": "We'd love to hear from you",
+    "thank_you_message": "Thank you for trying the Pool Pump Calculator. I am grateful for your interest in optimizing your pool pump runtime and reducing your electricity costs. Your feedback and questions are valuable to me, and I'm here to help you make the most of your pool pump optimization journey.",
+    "contact_preference": "The best way to reach me is via email, as I can provide detailed responses and assistance. However, you are also welcome to send me a direct message on Twitter/X or LinkedIn if you prefer to connect through social media.",
+    "email_label": "Email",
+    "email_text": "info@poolpumpcalc.com",
+    "twitter_label": "Twitter/X",
+    "twitter_text": "Direct message me",
+    "linkedin_label": "LinkedIn",
+    "linkedin_text": "Connect with me",
+    "reach_out_text": "Get in Touch"
   }
 }
