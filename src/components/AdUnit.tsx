@@ -17,6 +17,8 @@ declare global {
 }
 
 export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) => {
+  // Get client ID - hooks must be called before any early returns
+  const clientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
   const { isPremium, isLoading } = useSubscription();
   const adRef = useRef<HTMLDivElement>(null);
   const insRef = useRef<HTMLModElement>(null);
@@ -84,6 +86,12 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
     const statusInterval = setInterval(checkAdStatus, 500);
 
     const initializeAd = () => {
+      // Validate client ID is still present before initializing
+      if (!clientId) {
+        setShouldShow(false);
+        return;
+      }
+
       // Check if ad is already initialized by checking if the ins element has been processed
       if (!insRef.current || adInitialized.current) {
         return;
@@ -147,7 +155,10 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
             script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
             script.async = true;
             script.crossOrigin = 'anonymous';
-            script.setAttribute('data-ad-client', process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || '');
+            // Only set data-ad-client if client ID is valid
+            if (clientId) {
+              script.setAttribute('data-ad-client', clientId);
+            }
 
             script.onload = () => {
               resolve();
@@ -162,8 +173,8 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
 
         loadScript()
           .then(() => {
-            // Double-check that the element hasn't been initialized
-            if (insRef.current && !insRef.current.hasAttribute('data-adsbygoogle-status')) {
+            // Double-check that the element hasn't been initialized and client ID is still valid
+            if (insRef.current && !insRef.current.hasAttribute('data-adsbygoogle-status') && clientId) {
               if (window.adsbygoogle) {
                 (window.adsbygoogle = window.adsbygoogle || []).push({});
                 adInitialized.current = true;
@@ -208,7 +219,12 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
       }
       clearInterval(statusInterval);
     };
-  }, [isPremium, isLoading, adLoaded]);
+  }, [isPremium, isLoading, adLoaded, clientId]);
+
+  // Safe fallback: Check for required AdSense configuration after all hooks are called
+  if (!clientId || !slot) {
+    return null;
+  }
 
   // Don't render for premium users or if ad shouldn't be shown
   if (isPremium || isLoading || !shouldShow) {
@@ -236,7 +252,7 @@ export const AdUnit = ({ slot, format = 'auto', className = '' }: AdUnitProps) =
         ref={insRef}
         className="adsbygoogle" // Google AdSense required class
         style={{ display: 'block' }}
-        data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID}
+        data-ad-client={clientId}
         data-ad-slot={slot}
         data-ad-format={format}
         data-full-width-responsive="true"
